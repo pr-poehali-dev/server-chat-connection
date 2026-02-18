@@ -25,24 +25,24 @@ async function api(base: string, path: string, options: { method?: string; body?
   return res.json();
 }
 
-export async function register(username: string, password: string, displayName: string) {
+export async function register(phone: string, password: string, displayName: string) {
   return api(AUTH_URL, '/register', {
     method: 'POST',
-    body: { username, password, display_name: displayName },
+    body: { phone, password, display_name: displayName },
   });
 }
 
-export async function login(username: string, password: string) {
+export async function login(phone: string, password: string) {
   return api(AUTH_URL, '/login', {
     method: 'POST',
-    body: { username, password },
+    body: { phone, password },
   });
 }
 
 export async function searchUsers(query: string) {
   return api(AUTH_URL, '/search', {
     method: 'POST',
-    body: { query },
+    body: { query, user_id: getUserId() },
   });
 }
 

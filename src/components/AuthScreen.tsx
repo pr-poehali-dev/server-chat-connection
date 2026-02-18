@@ -5,16 +5,39 @@ import Icon from '@/components/ui/icon';
 import { register, login } from '@/lib/api';
 
 interface AuthScreenProps {
-  onAuth: (user: { user_id: string; username: string; display_name: string; avatar: string }) => void;
+  onAuth: (user: { user_id: string; phone: string; display_name: string; avatar: string }) => void;
+}
+
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 0) return '+7 ';
+  let d = digits;
+  if (d.startsWith('8')) d = '7' + d.slice(1);
+  if (!d.startsWith('7')) d = '7' + d;
+  
+  let result = '+7';
+  if (d.length > 1) result += ' (' + d.slice(1, 4);
+  if (d.length > 4) result += ') ' + d.slice(4, 7);
+  if (d.length > 7) result += '-' + d.slice(7, 9);
+  if (d.length > 9) result += '-' + d.slice(9, 11);
+  return result;
 }
 
 export default function AuthScreen({ onAuth }: AuthScreenProps) {
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [username, setUsername] = useState('');
+  const [phone, setPhone] = useState('+7 ');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const phoneDigits = phone.replace(/\D/g, '');
+  const isPhoneValid = phoneDigits.length >= 11;
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhone(e.target.value);
+    setPhone(formatted);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,8 +46,8 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
 
     try {
       const result = mode === 'login'
-        ? await login(username, password)
-        : await register(username, password, displayName || username);
+        ? await login(phone, password)
+        : await register(phone, password, displayName || phone);
 
       if (result.error) {
         setError(result.error);
@@ -54,18 +77,19 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
         <form onSubmit={handleSubmit} className="space-y-3">
           {mode === 'register' && (
             <Input
-              placeholder="Отображаемое имя"
+              placeholder="Ваше имя"
               value={displayName}
               onChange={e => setDisplayName(e.target.value)}
               className="h-11"
             />
           )}
           <Input
-            placeholder="Имя пользователя"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
+            type="tel"
+            placeholder="+7 (999) 123-45-67"
+            value={phone}
+            onChange={handlePhoneChange}
             className="h-11"
-            autoComplete="username"
+            autoComplete="tel"
           />
           <Input
             type="password"
@@ -82,7 +106,7 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
             </div>
           )}
 
-          <Button type="submit" className="w-full h-11" disabled={loading || !username || !password}>
+          <Button type="submit" className="w-full h-11" disabled={loading || !isPhoneValid || !password}>
             {loading ? (
               <Icon name="RefreshCw" size={16} className="animate-spin mr-2" />
             ) : null}

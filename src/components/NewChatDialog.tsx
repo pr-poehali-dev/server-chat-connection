@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
@@ -6,7 +6,7 @@ import { searchUsers, createChat } from '@/lib/api';
 
 interface User {
   id: string;
-  username: string;
+  phone: string;
   display_name: string;
   avatar: string;
   online: boolean;
@@ -23,23 +23,29 @@ export default function NewChatDialog({ open, onClose, onChatCreated }: NewChatD
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState('');
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
-  const handleSearch = async (value: string) => {
+  const handleSearch = (value: string) => {
     setQuery(value);
-    if (value.length < 2) {
+    const digits = value.replace(/\D/g, '');
+
+    if (digits.length < 4) {
       setUsers([]);
       return;
     }
 
-    setLoading(true);
-    try {
-      const result = await searchUsers(value);
-      setUsers(result.users || []);
-    } catch {
-      setUsers([]);
-    } finally {
-      setLoading(false);
-    }
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const result = await searchUsers(value);
+        setUsers(result.users || []);
+      } catch {
+        setUsers([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 400);
   };
 
   const handleSelect = async (user: User) => {
@@ -59,6 +65,8 @@ export default function NewChatDialog({ open, onClose, onChatCreated }: NewChatD
     }
   };
 
+  const digits = query.replace(/\D/g, '');
+
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
       <DialogContent className="sm:max-w-sm">
@@ -67,9 +75,10 @@ export default function NewChatDialog({ open, onClose, onChatCreated }: NewChatD
         </DialogHeader>
         <div className="space-y-3">
           <div className="relative">
-            <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Icon name="Phone" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Поиск по имени..."
+              type="tel"
+              placeholder="+7 999 123 45 67"
               value={query}
               onChange={e => handleSearch(e.target.value)}
               className="pl-9"
@@ -101,7 +110,7 @@ export default function NewChatDialog({ open, onClose, onChatCreated }: NewChatD
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{user.display_name}</div>
-                  <div className="text-xs text-muted-foreground">@{user.username}</div>
+                  <div className="text-xs text-muted-foreground">{user.phone}</div>
                 </div>
                 {creating === user.id && (
                   <Icon name="RefreshCw" size={14} className="animate-spin text-muted-foreground" />
@@ -110,9 +119,9 @@ export default function NewChatDialog({ open, onClose, onChatCreated }: NewChatD
             ))}
           </div>
 
-          {query.length >= 2 && !loading && users.length === 0 && (
+          {digits.length >= 4 && !loading && users.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Никого не найдено
+              Никого не найдено по этому номеру
             </p>
           )}
         </div>

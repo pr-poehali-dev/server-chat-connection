@@ -54,7 +54,7 @@ function toLocalMessage(sm: ServerMessage, userId: string): Message {
 }
 
 const Index = () => {
-  const [user, setUser] = useState<{ user_id: string; username: string; display_name: string; avatar: string } | null>(null);
+  const [user, setUser] = useState<{ user_id: string; phone?: string; username?: string; display_name: string; avatar: string } | null>(null);
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -218,7 +218,7 @@ const Index = () => {
     setActiveChatId(null);
   }, []);
 
-  const handleAuth = useCallback((userData: { user_id: string; username: string; display_name: string; avatar: string }) => {
+  const handleAuth = useCallback((userData: { user_id: string; phone?: string; display_name: string; avatar: string }) => {
     setUser(userData);
     lastPollRef.current = new Date().toISOString();
   }, []);
@@ -268,7 +268,7 @@ const Index = () => {
             <Icon name="Shield" size={16} className="text-primary" />
           </div>
           <span className="font-semibold text-sm tracking-tight">Шифр</span>
-          <span className="text-xs text-muted-foreground ml-1">@{user.username}</span>
+          <span className="text-xs text-muted-foreground ml-1">{user.display_name}</span>
         </div>
         <div className="flex items-center gap-3">
           <NetworkStatus

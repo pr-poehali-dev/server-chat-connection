@@ -2,10 +2,19 @@ import json
 import os
 import hashlib
 import uuid
+import re
 import psycopg2
 
 S = os.environ.get('MAIN_DB_SCHEMA', 'public')
 U = f'"{S}".users'
+
+def clean_phone(phone):
+    digits = re.sub(r'\D', '', phone)
+    if digits.startswith('8') and len(digits) == 11:
+        digits = '7' + digits[1:]
+    if not digits.startswith('7'):
+        digits = '7' + digits
+    return '+' + digits if len(digits) >= 10 else ''
 
 def hash_password(password):
     salt = uuid.uuid4().hex
@@ -19,7 +28,7 @@ def get_db():
     return psycopg2.connect(os.environ['DATABASE_URL'])
 
 def handler(event, context):
-    """Регистрация и авторизация пользователей мессенджера"""
+    """Регистрация и авторизация пользователей мессенджера по телефону"""
     if event.get('httpMethod') == 'OPTIONS':
         return {'statusCode': 200, 'headers': {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, X-User-Id, X-Auth-Token, X-Session-Id', 'Access-Control-Max-Age': '86400'}, 'body': ''}
 
@@ -32,63 +41,73 @@ def handler(event, context):
     cur = conn.cursor()
 
     if method == 'POST' and path == '/register':
-        username = body.get('username', '').strip().lower()
+        phone = clean_phone(body.get('phone', ''))
         display_name = body.get('display_name', '').strip()
         password = body.get('password', '')
-        avatar = body.get('avatar', username[0].upper() if username else '?')
 
-        if not username or not password or len(username) < 3:
+        if not phone or len(phone) < 11:
             conn.close()
-            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Имя пользователя (мин. 3 символа) и пароль обязательны'})}
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Введите корректный номер телефона'})}
+
+        if not password or len(password) < 4:
+            conn.close()
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Пароль минимум 4 символа'})}
 
         if not display_name:
-            display_name = username
+            display_name = phone
 
-        cur.execute(f"SELECT id FROM {U} WHERE username = %s", (username,))
+        avatar = display_name[0].upper()
+
+        cur.execute(f"SELECT id FROM {U} WHERE phone = %s", (phone,))
         if cur.fetchone():
             conn.close()
-            return {'statusCode': 409, 'headers': headers, 'body': json.dumps({'error': 'Пользователь уже существует'})}
+            return {'statusCode': 409, 'headers': headers, 'body': json.dumps({'error': 'Этот номер уже зарегистрирован'})}
 
+        username = phone.replace('+', '')
         pw_hash = hash_password(password)
         cur.execute(
-            f"INSERT INTO {U} (username, display_name, password_hash, avatar, is_online) VALUES (%s, %s, %s, %s, true) RETURNING id",
-            (username, display_name, pw_hash, avatar)
+            f"INSERT INTO {U} (username, phone, display_name, password_hash, avatar, is_online) VALUES (%s, %s, %s, %s, %s, true) RETURNING id",
+            (username, phone, display_name, pw_hash, avatar)
         )
         user_id = str(cur.fetchone()[0])
         conn.commit()
         conn.close()
 
-        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'user_id': user_id, 'username': username, 'display_name': display_name, 'avatar': avatar})}
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'user_id': user_id, 'phone': phone, 'display_name': display_name, 'avatar': avatar})}
 
     if method == 'POST' and path == '/login':
-        username = body.get('username', '').strip().lower()
+        phone = clean_phone(body.get('phone', ''))
         password = body.get('password', '')
 
-        cur.execute(f"SELECT id, username, display_name, password_hash, avatar FROM {U} WHERE username = %s", (username,))
+        if not phone:
+            conn.close()
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Введите номер телефона'})}
+
+        cur.execute(f"SELECT id, username, display_name, password_hash, avatar, phone FROM {U} WHERE phone = %s", (phone,))
         row = cur.fetchone()
         if not row or not verify_password(row[3], password):
             conn.close()
-            return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Неверный логин или пароль'})}
+            return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'error': 'Неверный номер или пароль'})}
 
         cur.execute(f"UPDATE {U} SET is_online = true, last_seen = now() WHERE id = %s", (row[0],))
         conn.commit()
         conn.close()
 
-        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'user_id': str(row[0]), 'username': row[1], 'display_name': row[2], 'avatar': row[4]})}
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'user_id': str(row[0]), 'phone': row[5], 'display_name': row[2], 'avatar': row[4]})}
 
     if method == 'POST' and path == '/search':
-        query = body.get('query', '').strip().lower()
-        user_id = event.get('headers', {}).get('x-user-id', '')
+        query = clean_phone(body.get('query', ''))
+        user_id = body.get('user_id', '')
 
-        if not query or len(query) < 2:
+        if not query or len(query) < 5:
             conn.close()
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'users': []})}
 
         cur.execute(
-            f"SELECT id, username, display_name, avatar, is_online FROM {U} WHERE username ILIKE %s AND id::text != %s LIMIT 20",
+            f"SELECT id, phone, display_name, avatar, is_online FROM {U} WHERE phone LIKE %s AND id::text != %s LIMIT 20",
             (f'%{query}%', user_id)
         )
-        users = [{'id': str(r[0]), 'username': r[1], 'display_name': r[2], 'avatar': r[3], 'online': r[4]} for r in cur.fetchall()]
+        users = [{'id': str(r[0]), 'phone': r[1], 'display_name': r[2], 'avatar': r[3], 'online': r[4]} for r in cur.fetchall()]
         conn.close()
 
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'users': users})}
