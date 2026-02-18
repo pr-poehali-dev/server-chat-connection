@@ -3,7 +3,8 @@ const CHATS_URL = 'https://functions.poehali.dev/77f17e43-1b58-4050-836e-28b21cb
 const MESSAGES_URL = 'https://functions.poehali.dev/095f98e5-52f9-43b3-a2c8-578cf045f6e9';
 
 function getUserId(): string {
-  return localStorage.getItem('cipher_user_id') || '';
+  const id = localStorage.getItem('cipher_user_id');
+  return id && id !== 'undefined' ? id : '';
 }
 
 async function api(base: string, path: string, options: { method?: string; body?: Record<string, unknown>; params?: Record<string, string> } = {}) {
@@ -21,8 +22,17 @@ async function api(base: string, path: string, options: { method?: string; body?
     fetchOptions.body = JSON.stringify(body);
   }
 
-  const res = await fetch(url, fetchOptions);
-  return res.json();
+  try {
+    const res = await fetch(url, fetchOptions);
+    if (!res.ok) {
+      console.error(`HTTP ${res.status} : ${url}`);
+      return {};
+    }
+    return res.json();
+  } catch (err) {
+    console.error(`Fetch error: ${err} for ${url}`);
+    throw err;
+  }
 }
 
 export async function register(phone: string, password: string, displayName: string) {
@@ -47,16 +57,20 @@ export async function searchUsers(query: string) {
 }
 
 export async function updateStatus(online: boolean) {
+  const uid = getUserId();
+  if (!uid) return { ok: false };
   return api(AUTH_URL, '/status', {
     method: 'POST',
-    body: { user_id: getUserId(), online },
+    body: { user_id: uid, online },
   });
 }
 
 export async function getChats() {
+  const uid = getUserId();
+  if (!uid) return { chats: [] };
   return api(CHATS_URL, '/list', {
     method: 'GET',
-    params: { user_id: getUserId() },
+    params: { user_id: uid },
   });
 }
 
@@ -88,8 +102,10 @@ export async function getMessagesList(chatId: string, after?: string) {
 }
 
 export async function pollMessages(after: string) {
+  const uid = getUserId();
+  if (!uid) return { messages: [] };
   return api(MESSAGES_URL, '/poll', {
-    params: { after, user_id: getUserId() },
+    params: { after, user_id: uid },
   });
 }
 
