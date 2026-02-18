@@ -72,9 +72,24 @@ const Index = () => {
   const { enqueue, syncing, queueLength } = useMessageQueue(network.online);
 
   useEffect(() => {
+    const storedId = localStorage.getItem('cipher_user_id');
     const stored = localStorage.getItem('cipher_user');
-    if (stored) {
-      try { setUser(JSON.parse(stored)); } catch { /* noop */ }
+    if (stored && storedId && storedId !== 'undefined' && storedId !== 'null') {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed.user_id) {
+          setUser(parsed);
+        } else {
+          localStorage.removeItem('cipher_user_id');
+          localStorage.removeItem('cipher_user');
+        }
+      } catch {
+        localStorage.removeItem('cipher_user_id');
+        localStorage.removeItem('cipher_user');
+      }
+    } else {
+      localStorage.removeItem('cipher_user_id');
+      localStorage.removeItem('cipher_user');
     }
     setInitialized(true);
   }, []);
@@ -280,8 +295,8 @@ const Index = () => {
         )}
       </div>
 
-      {!inChat && (
-        <BottomNav active={activeTab} onChange={setActiveTab} unreadChats={totalUnread} />
+      {!(inChat && activeTab === 'chats') && (
+        <BottomNav active={activeTab} onChange={(tab) => { if (tab !== 'chats') setActiveChatId(null); setActiveTab(tab); }} unreadChats={totalUnread} />
       )}
 
       {activeCall && (
