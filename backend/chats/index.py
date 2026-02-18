@@ -19,7 +19,14 @@ def handler(event, context):
     headers = {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'}
     method = event.get('httpMethod', 'GET')
     path = event.get('path', '/')
-    body = json.loads(event.get('body', '{}') or '{}')
+    raw_body = event.get('body') or ''
+    if event.get('isBase64Encoded') and raw_body:
+        import base64
+        raw_body = base64.b64decode(raw_body).decode('utf-8')
+    try:
+        body = json.loads(raw_body) if raw_body.strip() else {}
+    except Exception:
+        body = {}
     req_headers = event.get('headers', {})
     params = event.get('queryStringParameters', {}) or {}
     user_id = req_headers.get('x-user-id', '') or body.get('user_id', '') or params.get('user_id', '')

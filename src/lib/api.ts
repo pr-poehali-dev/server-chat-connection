@@ -22,17 +22,12 @@ async function api(base: string, path: string, options: { method?: string; body?
     fetchOptions.body = JSON.stringify(body);
   }
 
-  try {
-    const res = await fetch(url, fetchOptions);
-    if (!res.ok) {
-      console.error(`HTTP ${res.status} : ${url}`);
-      return {};
-    }
-    return res.json();
-  } catch (err) {
-    console.error(`Fetch error: ${err} for ${url}`);
-    throw err;
+  const res = await fetch(url, fetchOptions);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok && !data.error) {
+    data.error = `Ошибка сервера (${res.status})`;
   }
+  return data;
 }
 
 export async function register(phone: string, password: string, displayName: string) {
