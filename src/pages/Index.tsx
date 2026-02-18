@@ -9,6 +9,10 @@ import ChatWindow from '@/components/ChatWindow';
 import EmptyState from '@/components/EmptyState';
 import AuthScreen from '@/components/AuthScreen';
 import NewChatDialog from '@/components/NewChatDialog';
+import BottomNav, { type TabId } from '@/components/BottomNav';
+import StatusScreen from '@/components/StatusScreen';
+import CallsScreen from '@/components/CallsScreen';
+import CallOverlay from '@/components/CallOverlay';
 import Icon from '@/components/ui/icon';
 
 interface ServerChat {
@@ -54,12 +58,14 @@ function toLocalMessage(sm: ServerMessage, userId: string): Message {
 }
 
 const Index = () => {
-  const [user, setUser] = useState<{ user_id: string; phone?: string; username?: string; display_name: string; avatar: string } | null>(null);
+  const [user, setUser] = useState<{ user_id: string; phone?: string; display_name: string; avatar: string } | null>(null);
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [initialized, setInitialized] = useState(false);
   const [newChatOpen, setNewChatOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>('chats');
+  const [activeCall, setActiveCall] = useState<{ chat: Chat; type: 'voice' | 'video' } | null>(null);
   const lastPollRef = useRef<string>(new Date().toISOString());
 
   const network = useNetwork();
@@ -68,9 +74,7 @@ const Index = () => {
   useEffect(() => {
     const stored = localStorage.getItem('cipher_user');
     if (stored) {
-      try {
-        setUser(JSON.parse(stored));
-      } catch { /* noop */ }
+      try { setUser(JSON.parse(stored)); } catch { /* noop */ }
     }
     setInitialized(true);
   }, []);
@@ -83,9 +87,7 @@ const Index = () => {
         if (result.chats) {
           const localChats = result.chats.map((c: ServerChat) => toLocalChat(c));
           setChats(localChats);
-          for (const c of localChats) {
-            await saveChat(c);
-          }
+          for (const c of localChats) await saveChat(c);
         }
       } catch {
         const local = await getLocalChats();
@@ -100,9 +102,7 @@ const Index = () => {
   useEffect(() => {
     if (user) {
       loadChats();
-      if (network.online) {
-        api.updateStatus(true);
-      }
+      if (network.online) api.updateStatus(true);
     }
   }, [user, loadChats, network.online]);
 
@@ -114,9 +114,7 @@ const Index = () => {
         if (result.messages) {
           const localMsgs = result.messages.map((m: ServerMessage) => toLocalMessage(m, user.user_id));
           setMessages(localMsgs);
-          for (const m of localMsgs) {
-            await saveMessage(m);
-          }
+          for (const m of localMsgs) await saveMessage(m);
           api.markChatRead(chatId);
         }
       } catch {
@@ -130,71 +128,42 @@ const Index = () => {
   }, [user, network.online]);
 
   useEffect(() => {
-    if (activeChatId) {
-      loadMessages(activeChatId);
-    }
+    if (activeChatId) loadMessages(activeChatId);
   }, [activeChatId, loadMessages]);
 
   useEffect(() => {
     if (!user || !network.online) return;
-
     const interval = setInterval(async () => {
       try {
         const result = await api.pollMessages(lastPollRef.current);
         if (result.messages && result.messages.length > 0) {
           const newMsgs = result.messages.map((m: ServerMessage) => toLocalMessage(m, user.user_id));
-
-          for (const m of newMsgs) {
-            await saveMessage(m);
-          }
-
-          const lastTs = result.messages[result.messages.length - 1].created_at;
-          lastPollRef.current = lastTs;
-
+          for (const m of newMsgs) await saveMessage(m);
+          lastPollRef.current = result.messages[result.messages.length - 1].created_at;
           if (activeChatId) {
             const chatMsgs = newMsgs.filter((m: Message) => m.chatId === activeChatId);
-            if (chatMsgs.length > 0) {
-              setMessages(prev => [...prev, ...chatMsgs]);
-            }
+            if (chatMsgs.length > 0) setMessages(prev => [...prev, ...chatMsgs]);
           }
-
           loadChats();
         }
       } catch { /* noop */ }
     }, 3000);
-
     return () => clearInterval(interval);
   }, [user, network.online, activeChatId, loadChats]);
 
   const handleSelectChat = useCallback((id: string) => {
     setActiveChatId(id);
     setChats(prev => prev.map(c => c.id === id ? { ...c, unread: 0 } : c));
-    if (network.online) {
-      api.markChatRead(id);
-    }
+    if (network.online) api.markChatRead(id);
   }, [network.online]);
 
   const handleSend = useCallback(async (text: string) => {
     if (!activeChatId || !user) return;
-
     const clientId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    const msg: Message = {
-      id: clientId,
-      chatId: activeChatId,
-      text,
-      sender: 'me',
-      timestamp: Date.now(),
-      status: 'sending',
-      encrypted: true,
-    };
-
+    const msg: Message = { id: clientId, chatId: activeChatId, text, sender: 'me', timestamp: Date.now(), status: 'sending', encrypted: true };
     await saveMessage(msg);
     setMessages(prev => [...prev, msg]);
-
-    setChats(prev => prev.map(c =>
-      c.id === activeChatId ? { ...c, lastMessage: text, lastTimestamp: msg.timestamp } : c
-    ).sort((a, b) => (b.lastTimestamp || 0) - (a.lastTimestamp || 0)));
-
+    setChats(prev => prev.map(c => c.id === activeChatId ? { ...c, lastMessage: text, lastTimestamp: msg.timestamp } : c).sort((a, b) => (b.lastTimestamp || 0) - (a.lastTimestamp || 0)));
     if (network.online) {
       try {
         const result = await api.sendMessage(activeChatId, text, clientId);
@@ -214,9 +183,7 @@ const Index = () => {
     }
   }, [activeChatId, user, network.online, enqueue]);
 
-  const handleBack = useCallback(() => {
-    setActiveChatId(null);
-  }, []);
+  const handleBack = useCallback(() => setActiveChatId(null), []);
 
   const handleAuth = useCallback((userData: { user_id: string; phone?: string; display_name: string; avatar: string }) => {
     setUser(userData);
@@ -224,9 +191,7 @@ const Index = () => {
   }, []);
 
   const handleLogout = useCallback(() => {
-    if (network.online) {
-      api.updateStatus(false);
-    }
+    if (network.online) api.updateStatus(false);
     localStorage.removeItem('cipher_user_id');
     localStorage.removeItem('cipher_user');
     setUser(null);
@@ -236,10 +201,19 @@ const Index = () => {
   }, [network.online]);
 
   const handleChatCreated = useCallback((chatId: string) => {
-    loadChats().then(() => {
-      setActiveChatId(chatId);
-    });
+    loadChats().then(() => setActiveChatId(chatId));
   }, [loadChats]);
+
+  const handleStartCall = useCallback((chat: Chat, type: 'voice' | 'video') => {
+    setActiveCall({ chat, type });
+  }, []);
+
+  const handleCallFromChat = useCallback((type: 'voice' | 'video') => {
+    const chat = chats.find(c => c.id === activeChatId);
+    if (chat) setActiveCall({ chat, type });
+  }, [chats, activeChatId]);
+
+  const totalUnread = chats.reduce((sum, c) => sum + c.unread, 0);
 
   if (!initialized) {
     return (
@@ -254,11 +228,10 @@ const Index = () => {
     );
   }
 
-  if (!user) {
-    return <AuthScreen onAuth={handleAuth} />;
-  }
+  if (!user) return <AuthScreen onAuth={handleAuth} />;
 
   const activeChat = chats.find(c => c.id === activeChatId);
+  const inChat = !!activeChatId;
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -271,12 +244,7 @@ const Index = () => {
           <span className="text-xs text-muted-foreground ml-1">{user.display_name}</span>
         </div>
         <div className="flex items-center gap-3">
-          <NetworkStatus
-            online={network.online}
-            quality={network.quality}
-            syncing={syncing}
-            queueLength={queueLength}
-          />
+          <NetworkStatus online={network.online} quality={network.quality} syncing={syncing} queueLength={queueLength} />
           <button onClick={handleLogout} className="p-1.5 hover:bg-muted rounded-md transition-colors" title="Выйти">
             <Icon name="LogOut" size={16} className="text-muted-foreground" />
           </button>
@@ -284,34 +252,43 @@ const Index = () => {
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        <aside className={`w-full lg:w-80 border-r border-border bg-card flex-shrink-0 ${
-          activeChatId ? 'hidden lg:flex lg:flex-col' : 'flex flex-col'
-        }`}>
-          <ChatList chats={chats} activeChatId={activeChatId} onSelect={handleSelectChat} onNewChat={() => setNewChatOpen(true)} />
-        </aside>
+        {activeTab === 'chats' && (
+          <>
+            <aside className={`w-full lg:w-80 border-r border-border bg-card flex-shrink-0 ${inChat ? 'hidden lg:flex lg:flex-col' : 'flex flex-col'}`}>
+              <ChatList chats={chats} activeChatId={activeChatId} onSelect={handleSelectChat} onNewChat={() => setNewChatOpen(true)} />
+            </aside>
+            <main className={`flex-1 min-w-0 ${!inChat ? 'hidden lg:flex' : 'flex'} flex-col`}>
+              {activeChat ? (
+                <ChatWindow chat={activeChat} messages={messages} online={network.online} onSend={handleSend} onBack={handleBack} onCall={handleCallFromChat} />
+              ) : (
+                <EmptyState />
+              )}
+            </main>
+          </>
+        )}
 
-        <main className={`flex-1 min-w-0 ${
-          !activeChatId ? 'hidden lg:flex' : 'flex'
-        } flex-col`}>
-          {activeChat ? (
-            <ChatWindow
-              chat={activeChat}
-              messages={messages}
-              online={network.online}
-              onSend={handleSend}
-              onBack={handleBack}
-            />
-          ) : (
-            <EmptyState />
-          )}
-        </main>
+        {activeTab === 'status' && (
+          <div className="flex-1">
+            <StatusScreen displayName={user.display_name} avatar={user.avatar} />
+          </div>
+        )}
+
+        {activeTab === 'calls' && (
+          <div className="flex-1">
+            <CallsScreen chats={chats} onStartCall={handleStartCall} />
+          </div>
+        )}
       </div>
 
-      <NewChatDialog
-        open={newChatOpen}
-        onClose={() => setNewChatOpen(false)}
-        onChatCreated={handleChatCreated}
-      />
+      {!inChat && (
+        <BottomNav active={activeTab} onChange={setActiveTab} unreadChats={totalUnread} />
+      )}
+
+      {activeCall && (
+        <CallOverlay chat={activeCall.chat} callType={activeCall.type} onEnd={() => setActiveCall(null)} />
+      )}
+
+      <NewChatDialog open={newChatOpen} onClose={() => setNewChatOpen(false)} onChatCreated={handleChatCreated} />
     </div>
   );
 };

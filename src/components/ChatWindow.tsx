@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { type Message, type Chat } from '@/lib/storage';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Icon from '@/components/ui/icon';
+import EmojiPicker from '@/components/EmojiPicker';
+import GifPicker from '@/components/GifPicker';
 
 interface ChatWindowProps {
   chat: Chat;
@@ -9,6 +11,7 @@ interface ChatWindowProps {
   online: boolean;
   onSend: (text: string) => void;
   onBack: () => void;
+  onCall?: (type: 'voice' | 'video') => void;
 }
 
 function MessageStatus({ status }: { status: Message['status'] }) {
@@ -28,8 +31,10 @@ function formatMsgTime(ts: number) {
   return new Date(ts).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
 }
 
-export default function ChatWindow({ chat, messages, online, onSend, onBack }: ChatWindowProps) {
+export default function ChatWindow({ chat, messages, online, onSend, onBack, onCall }: ChatWindowProps) {
   const [text, setText] = useState('');
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [showGif, setShowGif] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -44,6 +49,8 @@ export default function ChatWindow({ chat, messages, online, onSend, onBack }: C
     if (!trimmed) return;
     onSend(trimmed);
     setText('');
+    setShowEmoji(false);
+    setShowGif(false);
     inputRef.current?.focus();
   };
 
@@ -52,6 +59,16 @@ export default function ChatWindow({ chat, messages, online, onSend, onBack }: C
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setText(prev => prev + emoji);
+    inputRef.current?.focus();
+  };
+
+  const handleGifSelect = (gif: string) => {
+    onSend(gif);
+    setShowGif(false);
   };
 
   return (
@@ -75,9 +92,18 @@ export default function ChatWindow({ chat, messages, online, onSend, onBack }: C
             Зашифрован
           </div>
         </div>
-        <button className="p-2 hover:bg-muted rounded-md transition-colors">
-          <Icon name="MoreVertical" size={18} className="text-muted-foreground" />
-        </button>
+        <div className="flex items-center gap-1">
+          {onCall && (
+            <>
+              <button onClick={() => onCall('voice')} className="p-2 hover:bg-muted rounded-md transition-colors">
+                <Icon name="Phone" size={16} className="text-muted-foreground" />
+              </button>
+              <button onClick={() => onCall('video')} className="p-2 hover:bg-muted rounded-md transition-colors">
+                <Icon name="Video" size={16} className="text-muted-foreground" />
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <ScrollArea className="flex-1 scrollbar-thin" ref={scrollRef}>
@@ -119,10 +145,37 @@ export default function ChatWindow({ chat, messages, online, onSend, onBack }: C
         </div>
       )}
 
+      {showEmoji && (
+        <div className="px-4 pb-1">
+          <EmojiPicker
+            onSelect={handleEmojiSelect}
+            onClose={() => setShowEmoji(false)}
+          />
+        </div>
+      )}
+
+      {showGif && (
+        <div className="px-4 pb-1">
+          <GifPicker
+            onSelect={handleGifSelect}
+            onClose={() => setShowGif(false)}
+          />
+        </div>
+      )}
+
       <div className="px-4 py-3 border-t border-border bg-card/50 backdrop-blur-sm">
-        <div className="flex items-end gap-2">
-          <button className="p-2 hover:bg-muted rounded-md transition-colors flex-shrink-0 mb-0.5">
-            <Icon name="Paperclip" size={18} className="text-muted-foreground" />
+        <div className="flex items-end gap-1.5">
+          <button
+            onClick={() => { setShowEmoji(!showEmoji); setShowGif(false); }}
+            className={`p-2 rounded-md transition-colors flex-shrink-0 mb-0.5 ${showEmoji ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-muted-foreground'}`}
+          >
+            <Icon name="Smile" size={18} />
+          </button>
+          <button
+            onClick={() => { setShowGif(!showGif); setShowEmoji(false); }}
+            className={`p-2 rounded-md transition-colors flex-shrink-0 mb-0.5 ${showGif ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-muted-foreground'}`}
+          >
+            <span className="text-xs font-bold">GIF</span>
           </button>
           <div className="flex-1 relative">
             <textarea
@@ -130,6 +183,7 @@ export default function ChatWindow({ chat, messages, online, onSend, onBack }: C
               value={text}
               onChange={e => setText(e.target.value)}
               onKeyDown={handleKeyDown}
+              onFocus={() => { setShowEmoji(false); setShowGif(false); }}
               placeholder="Сообщение..."
               rows={1}
               className="w-full resize-none bg-muted rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 ring-primary/30 transition-all placeholder:text-muted-foreground max-h-32 scrollbar-thin"
