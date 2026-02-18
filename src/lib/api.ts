@@ -17,7 +17,7 @@ async function api(base: string, path: string, options: { method?: string; body?
   const fetchOptions: RequestInit = { method };
 
   if (body) {
-    fetchOptions.headers = { 'Content-Type': 'application/json' };
+    fetchOptions.headers = { 'Content-Type': 'text/plain' };
     fetchOptions.body = JSON.stringify(body);
   }
 
