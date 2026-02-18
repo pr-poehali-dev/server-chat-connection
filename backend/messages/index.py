@@ -10,6 +10,26 @@ CM = f'"{S}".chat_members'
 def get_db():
     return psycopg2.connect(os.environ['DATABASE_URL'])
 
+def parse_body(event):
+    import base64 as b64
+    raw = event.get('body') or ''
+    if not raw or not raw.strip():
+        return {}
+    if event.get('isBase64Encoded'):
+        try:
+            raw = b64.b64decode(raw).decode('utf-8')
+        except Exception:
+            pass
+    try:
+        return json.loads(raw)
+    except Exception:
+        pass
+    try:
+        decoded = b64.b64decode(raw).decode('utf-8')
+        return json.loads(decoded)
+    except Exception:
+        return {}
+
 def handler(event, context):
     """Отправка и получение сообщений в чатах"""
     if event.get('httpMethod') == 'OPTIONS':
@@ -18,14 +38,7 @@ def handler(event, context):
     headers = {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'}
     method = event.get('httpMethod', 'GET')
     path = event.get('path', '/')
-    raw_body = event.get('body') or ''
-    if event.get('isBase64Encoded') and raw_body:
-        import base64
-        raw_body = base64.b64decode(raw_body).decode('utf-8')
-    try:
-        body = json.loads(raw_body) if raw_body.strip() else {}
-    except Exception:
-        body = {}
+    body = parse_body(event)
     req_headers = event.get('headers', {})
     all_params = event.get('queryStringParameters', {}) or {}
     user_id = req_headers.get('x-user-id', '') or body.get('user_id', '') or all_params.get('user_id', '')
