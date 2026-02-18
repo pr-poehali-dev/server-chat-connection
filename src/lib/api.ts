@@ -14,17 +14,14 @@ async function api(base: string, path: string, options: { method?: string; body?
     url += `?${qs}`;
   }
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'X-User-Id': getUserId(),
-  };
+  const fetchOptions: RequestInit = { method };
 
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  if (body) {
+    fetchOptions.headers = { 'Content-Type': 'application/json' };
+    fetchOptions.body = JSON.stringify(body);
+  }
 
+  const res = await fetch(url, fetchOptions);
   return res.json();
 }
 
