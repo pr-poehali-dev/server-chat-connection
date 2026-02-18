@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Message, addToQueue, getQueue, removeFromQueue, saveMessage } from '@/lib/storage';
+import { type Message, addToQueue, getQueue, removeFromQueue, saveMessage } from '@/lib/storage';
+import { syncMessages } from '@/lib/api';
 
 export function useMessageQueue(online: boolean) {
   const [queue, setQueue] = useState<Message[]>([]);
@@ -22,16 +23,30 @@ export function useMessageQueue(online: boolean) {
     setSyncing(true);
 
     const pending = await getQueue();
-    for (const msg of pending) {
+    if (pending.length > 0) {
       try {
-        await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 500));
-        const updated = { ...msg, status: 'delivered' as const };
-        await saveMessage(updated);
-        await removeFromQueue(msg.id);
-        setQueue(prev => prev.filter(m => m.id !== msg.id));
+        const payload = pending.map(m => ({
+          chat_id: m.chatId,
+          text: m.text,
+          client_id: m.id,
+        }));
+        const result = await syncMessages(payload);
+        if (result.results) {
+          for (const msg of pending) {
+            const synced = result.results.find((r: { client_id: string }) => r.client_id === msg.id);
+            if (synced) {
+              const updated = { ...msg, status: 'delivered' as const };
+              await saveMessage(updated);
+              await removeFromQueue(msg.id);
+            }
+          }
+        }
+        setQueue([]);
       } catch {
-        const failed = { ...msg, status: 'failed' as const };
-        await saveMessage(failed);
+        for (const msg of pending) {
+          const failed = { ...msg, status: 'failed' as const };
+          await saveMessage(failed);
+        }
       }
     }
 

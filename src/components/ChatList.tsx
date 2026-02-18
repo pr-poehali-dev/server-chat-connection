@@ -6,6 +6,7 @@ interface ChatListProps {
   chats: Chat[];
   activeChatId: string | null;
   onSelect: (id: string) => void;
+  onNewChat: () => void;
 }
 
 function formatTime(ts?: number) {
@@ -18,11 +19,11 @@ function formatTime(ts?: number) {
   return d.toLocaleDateString('ru', { day: 'numeric', month: 'short' });
 }
 
-export default function ChatList({ chats, activeChatId, onSelect }: ChatListProps) {
+export default function ChatList({ chats, activeChatId, onSelect, onNewChat }: ChatListProps) {
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-border">
-        <div className="relative">
+      <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+        <div className="relative flex-1">
           <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
@@ -30,6 +31,13 @@ export default function ChatList({ chats, activeChatId, onSelect }: ChatListProp
             className="w-full pl-9 pr-3 py-2 bg-muted rounded-lg text-sm outline-none focus:ring-1 ring-primary/30 transition-all placeholder:text-muted-foreground"
           />
         </div>
+        <button
+          onClick={onNewChat}
+          className="p-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex-shrink-0"
+          title="Новый чат"
+        >
+          <Icon name="Plus" size={16} />
+        </button>
       </div>
 
       <ScrollArea className="flex-1 scrollbar-thin">
