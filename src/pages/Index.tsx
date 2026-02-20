@@ -226,10 +226,12 @@ const Index = () => {
     if (user) {
       loadChats();
       if (network.online) api.updateStatus(true);
-      if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission().then(p => { notifPermRef.current = p; });
-      } else if ('Notification' in window) {
-        notifPermRef.current = Notification.permission;
+      if ('Notification' in window) {
+        if (Notification.permission === 'default') {
+          Notification.requestPermission().then(p => { notifPermRef.current = p; });
+        } else {
+          notifPermRef.current = Notification.permission;
+        }
       }
     }
   }, [user, loadChats, network.online]);
@@ -274,22 +276,29 @@ const Index = () => {
           }
           loadChats();
 
-          // Push-уведомления для сообщений не из активного чата
           if ('Notification' in window && notifPermRef.current === 'granted') {
-            const msgsToNotify = newMsgs.filter((m: Message) => m.chatId !== activeChatId || document.hidden);
+            const msgsToNotify = newMsgs.filter((m: Message) => m.sender === 'them' && (m.chatId !== activeChatId || document.hidden));
             for (const m of msgsToNotify) {
               const chat = chats.find(c => c.id === m.chatId);
               const title = chat?.name || 'Новое сообщение';
-              new Notification(title, {
+              const notifOptions = {
                 body: m.text,
-                icon: '/favicon.ico',
+                icon: 'https://cdn.poehali.dev/projects/2bf6d4f6-893f-48e1-986c-00c5bd829ead/files/79b23ae2-2716-4535-95e2-0056b3f1b56f.jpg',
                 tag: m.chatId,
-              });
+                vibrate: [200, 100, 200],
+              };
+              if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.ready.then(reg => {
+                  reg.showNotification(title, notifOptions);
+                });
+              } else {
+                new Notification(title, notifOptions);
+              }
             }
           }
         }
       } catch { /* noop */ }
-    }, 3000);
+    }, 1500);
     return () => clearInterval(interval);
   }, [user, network.online, activeChatId, loadChats, chats]);
 
