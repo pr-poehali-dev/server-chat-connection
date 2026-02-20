@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { IMAGE_AVATARS, AvatarImg } from '@/lib/avatars';
 import { type Chat, type Message, saveChat, saveMessage, getMessages as getLocalMessages, getChats as getLocalChats } from '@/lib/storage';
 import * as api from '@/lib/api';
 import useNetwork from '@/hooks/use-network';
@@ -57,7 +58,7 @@ function toLocalMessage(sm: ServerMessage, userId: string): Message {
   };
 }
 
-const EMOJI_AVATARS = ['😀','😎','🤖','👾','🦊','🐼','🐸','🦁','🐯','🦄','🔥','⚡','🌊','🍀','🎯','🚀'];
+
 
 function ProfileScreen({ user, onUpdate, onLogout }: {
   user: { user_id: string; phone?: string; display_name: string; avatar: string };
@@ -92,13 +93,9 @@ function ProfileScreen({ user, onUpdate, onLogout }: {
     onUpdate(updated);
   };
 
-  const isEmoji = EMOJI_AVATARS.includes(user.avatar);
-
   return (
     <div className="flex-1 flex flex-col items-center p-6 gap-6 overflow-y-auto">
-      <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center text-4xl font-bold text-primary select-none">
-        {user.avatar}
-      </div>
+      <AvatarImg avatar={user.avatar} size={96} />
 
       <div className="w-full max-w-sm space-y-4">
         <div className="bg-card border border-border rounded-xl p-4">
@@ -139,27 +136,19 @@ function ProfileScreen({ user, onUpdate, onLogout }: {
 
         <div className="bg-card border border-border rounded-xl p-4">
           <div className="text-xs text-muted-foreground mb-3">Аватар</div>
-          <div className="grid grid-cols-8 gap-2">
-            {EMOJI_AVATARS.map(emoji => (
+          <div className="grid grid-cols-5 gap-2">
+            {IMAGE_AVATARS.map(avatar => (
               <button
-                key={emoji}
-                onClick={() => handleSetAvatar(emoji)}
+                key={avatar.id}
+                onClick={() => handleSetAvatar(avatar.id)}
                 disabled={saving}
-                className={`w-9 h-9 rounded-xl text-xl flex items-center justify-center transition-colors ${user.avatar === emoji ? 'bg-primary/20 ring-2 ring-primary' : 'hover:bg-muted'}`}
+                className={`aspect-square rounded-xl overflow-hidden transition-all ${user.avatar === avatar.id ? 'ring-2 ring-primary ring-offset-2' : 'opacity-70 hover:opacity-100'}`}
+                title={avatar.label}
               >
-                {emoji}
+                <img src={avatar.url} alt={avatar.label} className="w-full h-full object-cover" />
               </button>
             ))}
           </div>
-          {!isEmoji && (
-            <button
-              onClick={() => handleSetAvatar(user.display_name[0]?.toUpperCase() || '?')}
-              disabled={saving}
-              className="mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Сбросить к букве
-            </button>
-          )}
         </div>
 
         <button

@@ -4,6 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import Icon from '@/components/ui/icon';
 import EmojiPicker from '@/components/EmojiPicker';
 import GifPicker from '@/components/GifPicker';
+import { AvatarImg } from '@/lib/avatars';
 
 interface ChatWindowProps {
   chat: Chat;
@@ -78,9 +79,7 @@ export default function ChatWindow({ chat, messages, online, onSend, onBack, onC
           <Icon name="ArrowLeft" size={20} />
         </button>
         <div className="relative flex-shrink-0">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold">
-            {chat.avatar}
-          </div>
+          <AvatarImg avatar={chat.avatar} size={36} />
           {chat.online && (
             <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-card" />
           )}

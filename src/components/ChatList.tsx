@@ -1,6 +1,7 @@
 import { type Chat } from '@/lib/storage';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Icon from '@/components/ui/icon';
+import { AvatarImg } from '@/lib/avatars';
 
 interface ChatListProps {
   chats: Chat[];
@@ -51,9 +52,8 @@ export default function ChatList({ chats, activeChatId, onSelect, onNewChat }: C
               }`}
             >
               <div className="relative flex-shrink-0">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold">
-                  {chat.avatar}
-                </div>
+                <AvatarImg avatar={chat.avatar} size={40} />
+
                 {chat.online && (
                   <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-background" />
                 )}
