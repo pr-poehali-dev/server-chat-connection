@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { type Chat } from '@/lib/storage';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Icon from '@/components/ui/icon';
@@ -21,6 +22,9 @@ function formatTime(ts?: number) {
 }
 
 export default function ChatList({ chats, activeChatId, onSelect, onNewChat }: ChatListProps) {
+  const [search, setSearch] = useState('');
+  const filtered = search ? chats.filter(c => c.name.toLowerCase().includes(search.toLowerCase())) : chats;
+
   return (
     <div className="flex flex-col h-full relative">
       <div className="px-4 py-3 border-b border-border flex items-center gap-2">
@@ -29,6 +33,8 @@ export default function ChatList({ chats, activeChatId, onSelect, onNewChat }: C
           <input
             type="text"
             placeholder="Поиск..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 bg-muted rounded-lg text-sm outline-none focus:ring-1 ring-primary/30 transition-all placeholder:text-muted-foreground"
           />
         </div>
@@ -36,7 +42,7 @@ export default function ChatList({ chats, activeChatId, onSelect, onNewChat }: C
 
       <ScrollArea className="flex-1 scrollbar-thin">
         <div className="py-1 pb-20">
-          {chats.length === 0 && (
+          {filtered.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 px-6 text-center gap-3">
               <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
                 <Icon name="MessageCircle" size={24} className="text-primary" />
@@ -44,7 +50,7 @@ export default function ChatList({ chats, activeChatId, onSelect, onNewChat }: C
               <p className="text-sm text-muted-foreground">Нет чатов. Нажмите + чтобы начать общение</p>
             </div>
           )}
-          {chats.map(chat => (
+          {filtered.map(chat => (
             <button
               key={chat.id}
               onClick={() => onSelect(chat.id)}

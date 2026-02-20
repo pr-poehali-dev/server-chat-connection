@@ -1,25 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { type Chat } from '@/lib/storage';
+import { AvatarImg } from '@/lib/avatars';
 
-interface CallRecord {
+export interface CallHistoryRecord {
   id: string;
+  chatId: string;
   name: string;
   avatar: string;
   type: 'incoming' | 'outgoing' | 'missed';
   callType: 'voice' | 'video';
-  time: string;
-  online: boolean;
+  timestamp: number;
 }
 
-const DEMO_CALLS: CallRecord[] = [
-  { id: '1', name: 'Алексей', avatar: 'А', type: 'incoming', callType: 'voice', time: 'Сегодня, 14:23', online: true },
-  { id: '2', name: 'Мария', avatar: 'М', type: 'missed', callType: 'video', time: 'Сегодня, 11:05', online: true },
-  { id: '3', name: 'Дмитрий', avatar: 'Д', type: 'outgoing', callType: 'voice', time: 'Вчера, 18:40', online: false },
-  { id: '4', name: 'Анна', avatar: 'А', type: 'incoming', callType: 'video', time: 'Вчера, 09:15', online: true },
-  { id: '5', name: 'Алексей', avatar: 'А', type: 'outgoing', callType: 'voice', time: '15 фев., 20:30', online: false },
-];
+function formatCallTime(ts: number) {
+  const d = new Date(ts);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+  const time = d.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
+
+  if (diffDays === 0) {
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    if (d.getTime() >= todayStart) return `Сегодня, ${time}`;
+    return `Вчера, ${time}`;
+  }
+  if (diffDays === 1) return `Вчера, ${time}`;
+  return d.toLocaleDateString('ru', { day: 'numeric', month: 'short' }) + `, ${time}`;
+}
 
 interface CallsScreenProps {
   chats: Chat[];
@@ -27,7 +36,35 @@ interface CallsScreenProps {
 }
 
 export default function CallsScreen({ chats, onStartCall }: CallsScreenProps) {
-  const [calls] = useState<CallRecord[]>(DEMO_CALLS);
+  const [calls, setCalls] = useState<CallHistoryRecord[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('cipher_call_history');
+      if (raw) setCalls(JSON.parse(raw));
+    } catch { /* noop */ }
+  }, []);
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'cipher_call_history' && e.newValue) {
+        try { setCalls(JSON.parse(e.newValue)); } catch { /* noop */ }
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  useEffect(() => {
+    const handler = () => {
+      try {
+        const raw = localStorage.getItem('cipher_call_history');
+        if (raw) setCalls(JSON.parse(raw));
+      } catch { /* noop */ }
+    };
+    window.addEventListener('cipher_call_history_updated', handler);
+    return () => window.removeEventListener('cipher_call_history_updated', handler);
+  }, []);
 
   const callIcon = (type: 'incoming' | 'outgoing' | 'missed') => {
     if (type === 'missed') return { icon: 'PhoneMissed', color: 'text-red-500' };
@@ -39,9 +76,6 @@ export default function CallsScreen({ chats, onStartCall }: CallsScreenProps) {
     <div className="flex flex-col h-full">
       <div className="px-4 py-3 border-b border-border flex items-center justify-between">
         <h2 className="text-base font-semibold">Звонки</h2>
-        <button className="p-1.5 hover:bg-muted rounded-md transition-colors">
-          <Icon name="PhoneCall" size={18} className="text-primary" />
-        </button>
       </div>
 
       <ScrollArea className="flex-1 scrollbar-thin">
@@ -56,9 +90,7 @@ export default function CallsScreen({ chats, onStartCall }: CallsScreenProps) {
                   className="flex flex-col items-center gap-1 min-w-[56px]"
                 >
                   <div className="relative">
-                    <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold">
-                      {chat.avatar}
-                    </div>
+                    <AvatarImg avatar={chat.avatar} size={44} />
                     {chat.online && (
                       <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-background" />
                     )}
@@ -74,14 +106,21 @@ export default function CallsScreen({ chats, onStartCall }: CallsScreenProps) {
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">История</span>
         </div>
 
+        {calls.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 px-6 text-center gap-3">
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+              <Icon name="Phone" size={24} className="text-primary" />
+            </div>
+            <p className="text-sm text-muted-foreground">Нет звонков</p>
+          </div>
+        )}
+
         {calls.map(call => {
           const ci = callIcon(call.type);
           return (
             <div key={call.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/60 transition-colors">
               <div className="relative flex-shrink-0">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold">
-                  {call.avatar}
-                </div>
+                <AvatarImg avatar={call.avatar} size={40} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className={`text-sm font-medium ${call.type === 'missed' ? 'text-red-500' : ''}`}>
@@ -89,13 +128,13 @@ export default function CallsScreen({ chats, onStartCall }: CallsScreenProps) {
                 </div>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Icon name={ci.icon} size={12} className={ci.color} />
-                  <span>{call.time}</span>
+                  <span>{formatCallTime(call.timestamp)}</span>
                 </div>
               </div>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => {
-                    const chat = chats.find(c => c.name === call.name);
+                    const chat = chats.find(c => c.id === call.chatId);
                     if (chat) onStartCall(chat, 'voice');
                   }}
                   className="p-2 hover:bg-muted rounded-md transition-colors"
@@ -104,7 +143,7 @@ export default function CallsScreen({ chats, onStartCall }: CallsScreenProps) {
                 </button>
                 <button
                   onClick={() => {
-                    const chat = chats.find(c => c.name === call.name);
+                    const chat = chats.find(c => c.id === call.chatId);
                     if (chat) onStartCall(chat, 'video');
                   }}
                   className="p-2 hover:bg-muted rounded-md transition-colors"

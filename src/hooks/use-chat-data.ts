@@ -7,6 +7,26 @@ import { type ServerChat, type ServerMessage, toLocalChat, toLocalMessage } from
 
 export type UserData = { user_id: string; phone?: string; display_name: string; avatar: string };
 
+function saveCallToHistory(chat: Chat, callType: 'voice' | 'video') {
+  try {
+    const raw = localStorage.getItem('cipher_call_history');
+    const history = raw ? JSON.parse(raw) : [];
+    const record = {
+      id: `call_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      chatId: chat.id,
+      name: chat.name,
+      avatar: chat.avatar,
+      type: 'outgoing' as const,
+      callType,
+      timestamp: Date.now(),
+    };
+    history.unshift(record);
+    if (history.length > 50) history.length = 50;
+    localStorage.setItem('cipher_call_history', JSON.stringify(history));
+    window.dispatchEvent(new Event('cipher_call_history_updated'));
+  } catch { /* noop */ }
+}
+
 export function useChatData() {
   const [user, setUser] = useState<UserData | null>(null);
   const [chats, setChats] = useState<Chat[]>([]);
@@ -231,12 +251,16 @@ export function useChatData() {
   }, [loadChats]);
 
   const handleStartCall = useCallback((chat: Chat, type: 'voice' | 'video') => {
+    saveCallToHistory(chat, type);
     setActiveCall({ chat, type });
   }, []);
 
   const handleCallFromChat = useCallback((type: 'voice' | 'video') => {
     const chat = chats.find(c => c.id === activeChatId);
-    if (chat) setActiveCall({ chat, type });
+    if (chat) {
+      saveCallToHistory(chat, type);
+      setActiveCall({ chat, type });
+    }
   }, [chats, activeChatId]);
 
   return {
