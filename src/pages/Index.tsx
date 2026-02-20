@@ -427,8 +427,8 @@ const Index = () => {
       </div>
       <header className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-card/80 backdrop-blur-sm">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Icon name="Shield" size={16} className="text-primary" />
+          <div className="w-8 h-8 rounded-lg overflow-hidden">
+            <img src="https://cdn.poehali.dev/projects/2bf6d4f6-893f-48e1-986c-00c5bd829ead/bucket/afbe201b-93df-4672-998c-17567d16ef9b.jpg" alt="Того" className="w-full h-full object-cover" />
           </div>
           <span className="font-semibold text-sm tracking-tight">Того</span>
           <span className="text-xs text-muted-foreground ml-1">{user.display_name}</span>
