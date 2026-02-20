@@ -1,6 +1,7 @@
 const AUTH_URL = 'https://functions.poehali.dev/dcfb261d-6e0d-4154-ae10-3f12cedb4bb5';
 const CHATS_URL = 'https://functions.poehali.dev/77f17e43-1b58-4050-836e-28b21cbcb6c1';
 const MESSAGES_URL = 'https://functions.poehali.dev/095f98e5-52f9-43b3-a2c8-578cf045f6e9';
+const STATUSES_URL = 'https://functions.poehali.dev/0f0ea2b7-d2ed-4a9b-883f-05d4e2f5b3dd';
 
 function getUserId(): string {
   const id = localStorage.getItem('cipher_user_id');
@@ -141,4 +142,24 @@ export async function leaveChat(chatId: string) {
   });
 }
 
-export default { register, login, searchUsers, updateStatus, getChats, createChat, markChatRead, sendMessage, getMessagesList, pollMessages, syncMessages, updateProfile, deleteMessage, leaveChat };
+export async function getStatuses() {
+  const uid = getUserId();
+  if (!uid) return { users: [] };
+  return api(STATUSES_URL, 'list', { params: { user_id: uid } });
+}
+
+export async function publishStatus(content: string, type: string, imageData?: string) {
+  return api(STATUSES_URL, 'publish', {
+    method: 'POST',
+    body: { user_id: getUserId(), content, type, image_data: imageData || '' },
+  });
+}
+
+export async function removeStatus(statusId: string) {
+  return api(STATUSES_URL, 'remove', {
+    method: 'POST',
+    body: { user_id: getUserId(), status_id: statusId },
+  });
+}
+
+export default { register, login, searchUsers, updateStatus, getChats, createChat, markChatRead, sendMessage, getMessagesList, pollMessages, syncMessages, updateProfile, deleteMessage, leaveChat, getStatuses, publishStatus, removeStatus };
