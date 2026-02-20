@@ -5,6 +5,7 @@ import uuid
 import re
 import psycopg2
 
+
 S = os.environ.get('MAIN_DB_SCHEMA', 'public')
 U = f'"{S}".users'
 
