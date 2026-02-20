@@ -395,7 +395,7 @@ const Index = () => {
 
   if (!user) return <AuthScreen onAuth={handleAuth} />;
 
-  if (!network.online && chats.length === 0) return <OfflineScreen />;
+  if (!network.online && chats.length === 0 && initialized) return <OfflineScreen />;
 
   const activeChat = chats.find(c => c.id === activeChatId);
   const inChat = !!activeChatId;

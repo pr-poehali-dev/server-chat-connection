@@ -11,8 +11,8 @@ interface NetworkState {
 
 export function useNetwork() {
   const [state, setState] = useState<NetworkState>({
-    online: navigator.onLine,
-    quality: navigator.onLine ? 'good' : 'offline',
+    online: true,
+    quality: 'good',
     rtt: 0,
     downlink: 0,
   });
