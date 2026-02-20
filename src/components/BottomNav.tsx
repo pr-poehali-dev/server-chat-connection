@@ -1,6 +1,6 @@
 import Icon from '@/components/ui/icon';
 
-export type TabId = 'status' | 'chats' | 'calls';
+export type TabId = 'chats' | 'status' | 'calls' | 'profile';
 
 interface BottomNavProps {
   active: TabId;
@@ -9,9 +9,10 @@ interface BottomNavProps {
 }
 
 const tabs: { id: TabId; icon: string; label: string }[] = [
-  { id: 'status', icon: 'CircleDot', label: 'Статусы' },
   { id: 'chats', icon: 'MessageCircle', label: 'Чаты' },
+  { id: 'status', icon: 'CircleDot', label: 'Статусы' },
   { id: 'calls', icon: 'Phone', label: 'Звонки' },
+  { id: 'profile', icon: 'User', label: 'Профиль' },
 ];
 
 export default function BottomNav({ active, onChange, unreadChats }: BottomNavProps) {

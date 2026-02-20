@@ -293,6 +293,25 @@ const Index = () => {
             <CallsScreen chats={chats} onStartCall={handleStartCall} />
           </div>
         )}
+
+        {activeTab === 'profile' && (
+          <div className="flex-1 flex flex-col items-center justify-start p-6 gap-6">
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-3xl font-bold text-primary">
+              {user.avatar}
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-semibold">{user.display_name}</div>
+              {user.phone && <div className="text-sm text-muted-foreground mt-1">{user.phone}</div>}
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              <Icon name="LogOut" size={16} />
+              Выйти из аккаунта
+            </button>
+          </div>
+        )}
       </div>
 
       {!(inChat && activeTab === 'chats') && (
