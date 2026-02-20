@@ -32,7 +32,7 @@ def parse_body(event):
         return {}
 
 def handler(event, context):
-    """Отправка и получение сообщений в чатах"""
+    """Отправка и получение сообщений в чатах Того"""
     if event.get('httpMethod') == 'OPTIONS':
         return {'statusCode': 200, 'headers': {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, X-User-Id, X-Auth-Token, X-Session-Id', 'Access-Control-Max-Age': '86400'}, 'body': ''}
 

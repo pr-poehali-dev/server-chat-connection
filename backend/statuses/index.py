@@ -30,7 +30,7 @@ def parse_body(event):
             return {}
 
 def handler(event, context):
-    """Статусы пользователей — публикация и просмотр (живут 24 часа)"""
+    """Статусы пользователей Того — публикация и просмотр (живут 24 часа)"""
     if event.get('httpMethod') == 'OPTIONS':
         return {'statusCode': 200, 'headers': {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, X-User-Id', 'Access-Control-Max-Age': '86400'}, 'body': ''}
 

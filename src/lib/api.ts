@@ -8,6 +8,15 @@ function getUserId(): string {
   return id && id !== 'undefined' ? id : '';
 }
 
+async function doFetch(url: string, fetchOptions: RequestInit): Promise<Response> {
+  const res = await fetch(url, fetchOptions);
+  if (res.status === 402) {
+    await new Promise(r => setTimeout(r, 2000));
+    return fetch(url, { ...fetchOptions, signal: AbortSignal.timeout(20000) });
+  }
+  return res;
+}
+
 async function api(base: string, action: string, options: { method?: string; body?: Record<string, unknown>; params?: Record<string, string>; silent?: boolean } = {}) {
   const { method = 'GET', body, params, silent = false } = options;
   const qs = new URLSearchParams({ action, ...(params || {}) }).toString();
@@ -21,7 +30,7 @@ async function api(base: string, action: string, options: { method?: string; bod
   }
 
   try {
-    const res = await fetch(url, fetchOptions);
+    const res = await doFetch(url, fetchOptions);
     if (res.status === 402) {
       return { error: 'Сервер временно недоступен. Попробуй через минуту.' };
     }
