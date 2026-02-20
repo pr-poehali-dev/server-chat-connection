@@ -55,7 +55,7 @@ export default function CallOverlay({ chat, callType, onEnd }: CallOverlayProps)
           {callType === 'video' ? 'Видеозвонок' : 'Голосовой звонок'}
         </div>
         <div className="flex items-center gap-1.5 text-xs text-white/50">
-          <Icon name="Shield" size={10} />
+          <img src="https://cdn.poehali.dev/projects/2bf6d4f6-893f-48e1-986c-00c5bd829ead/bucket/afbe201b-93df-4672-998c-17567d16ef9b.jpg" alt="Того" className="w-3 h-3 rounded-full object-cover" />
           Зашифрован
         </div>
       </div>

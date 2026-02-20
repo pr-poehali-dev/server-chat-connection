@@ -110,7 +110,7 @@ export default function ChatWindow({ chat, messages, online, onSend, onBack, onC
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium">{chat.name}</div>
           <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-            <Icon name="Shield" size={10} className="text-emerald-500" />
+            <img src="https://cdn.poehali.dev/projects/2bf6d4f6-893f-48e1-986c-00c5bd829ead/bucket/afbe201b-93df-4672-998c-17567d16ef9b.jpg" alt="Того" className="w-3 h-3 rounded-full object-cover" />
             Зашифрован
           </div>
         </div>
