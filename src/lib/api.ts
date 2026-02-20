@@ -7,24 +7,29 @@ function getUserId(): string {
   return id && id !== 'undefined' ? id : '';
 }
 
-async function api(base: string, action: string, options: { method?: string; body?: Record<string, unknown>; params?: Record<string, string> } = {}) {
-  const { method = 'GET', body, params } = options;
+async function api(base: string, action: string, options: { method?: string; body?: Record<string, unknown>; params?: Record<string, string>; silent?: boolean } = {}) {
+  const { method = 'GET', body, params, silent = false } = options;
   const qs = new URLSearchParams({ action, ...(params || {}) }).toString();
   const url = `${base}?${qs}`;
 
-  const fetchOptions: RequestInit = { method };
+  const fetchOptions: RequestInit = { method, signal: AbortSignal.timeout(10000) };
 
   if (body) {
     fetchOptions.headers = { 'Content-Type': 'application/json' };
     fetchOptions.body = JSON.stringify(body);
   }
 
-  const res = await fetch(url, fetchOptions);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok && !data.error) {
-    data.error = `Ошибка сервера (${res.status})`;
+  try {
+    const res = await fetch(url, fetchOptions);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok && !data.error) {
+      data.error = `Ошибка сервера (${res.status})`;
+    }
+    return data;
+  } catch (e) {
+    if (!silent) console.error(`Fetch error: ${e} for ${url}`);
+    return {};
   }
-  return data;
 }
 
 export async function register(phone: string, password: string, displayName: string) {
@@ -97,6 +102,7 @@ export async function pollMessages(after: string) {
   if (!uid) return { messages: [] };
   return api(MESSAGES_URL, 'poll', {
     params: { after, user_id: uid },
+    silent: true,
   });
 }
 
