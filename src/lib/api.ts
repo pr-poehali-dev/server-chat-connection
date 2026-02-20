@@ -13,7 +13,7 @@ async function api(base: string, action: string, options: { method?: string; bod
   const qs = new URLSearchParams({ action, ...(params || {}) }).toString();
   const url = `${base}?${qs}`;
 
-  const fetchOptions: RequestInit = { method, signal: AbortSignal.timeout(10000) };
+  const fetchOptions: RequestInit = { method, signal: AbortSignal.timeout(20000) };
 
   if (body) {
     fetchOptions.headers = { 'Content-Type': 'application/json' };
@@ -28,8 +28,8 @@ async function api(base: string, action: string, options: { method?: string; bod
     }
     return data;
   } catch (e) {
-    if (!silent) console.error(`Fetch error: ${e} for ${url}`);
-    return {};
+    if (!silent) console.error(`[API] ${action} error:`, e);
+    return { error: 'Нет связи с сервером. Проверь интернет.' };
   }
 }
 
