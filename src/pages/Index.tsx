@@ -173,6 +173,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<TabId>('chats');
   const [activeCall, setActiveCall] = useState<{ chat: Chat; type: 'voice' | 'video' } | null>(null);
   const lastPollRef = useRef<string>(new Date().toISOString());
+  const notifPermRef = useRef<NotificationPermission>('default');
 
   const network = useNetwork();
   const { enqueue, syncing, queueLength } = useMessageQueue(network.online);
@@ -224,6 +225,11 @@ const Index = () => {
     if (user) {
       loadChats();
       if (network.online) api.updateStatus(true);
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().then(p => { notifPermRef.current = p; });
+      } else if ('Notification' in window) {
+        notifPermRef.current = Notification.permission;
+      }
     }
   }, [user, loadChats, network.online]);
 
@@ -266,11 +272,25 @@ const Index = () => {
             if (chatMsgs.length > 0) setMessages(prev => [...prev, ...chatMsgs]);
           }
           loadChats();
+
+          // Push-уведомления для сообщений не из активного чата
+          if ('Notification' in window && notifPermRef.current === 'granted') {
+            const msgsToNotify = newMsgs.filter((m: Message) => m.chatId !== activeChatId || document.hidden);
+            for (const m of msgsToNotify) {
+              const chat = chats.find(c => c.id === m.chatId);
+              const title = chat?.name || 'Новое сообщение';
+              new Notification(title, {
+                body: m.text,
+                icon: '/favicon.ico',
+                tag: m.chatId,
+              });
+            }
+          }
         }
       } catch { /* noop */ }
     }, 3000);
     return () => clearInterval(interval);
-  }, [user, network.online, activeChatId, loadChats]);
+  }, [user, network.online, activeChatId, loadChats, chats]);
 
   const handleSelectChat = useCallback((id: string) => {
     setActiveChatId(id);
