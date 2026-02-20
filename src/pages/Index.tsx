@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { IMAGE_AVATARS, AvatarImg } from '@/lib/avatars';
 import { type Chat, type Message, saveChat, saveMessage, getMessages as getLocalMessages, getChats as getLocalChats, deleteLocalMessage, deleteLocalChat } from '@/lib/storage';
 import * as api from '@/lib/api';
@@ -176,6 +176,22 @@ const Index = () => {
   const lastPollRef = useRef<string>(new Date().toISOString());
   const notifPermRef = useRef<NotificationPermission>('default');
 
+  const playNotifSound = useMemo(() => () => {
+    try {
+      const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.frequency.setValueAtTime(880, ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.1);
+      g.gain.setValueAtTime(0.3, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      o.start(ctx.currentTime);
+      o.stop(ctx.currentTime + 0.3);
+    } catch { /* noop */ }
+  }, []);
+
   const network = useNetwork();
   const { enqueue, syncing, queueLength } = useMessageQueue(network.online);
 
@@ -276,8 +292,11 @@ const Index = () => {
           }
           loadChats();
 
+          const incomingMsgs = newMsgs.filter((m: Message) => m.sender === 'them');
+          if (incomingMsgs.length > 0) playNotifSound();
+
           if ('Notification' in window && notifPermRef.current === 'granted') {
-            const msgsToNotify = newMsgs.filter((m: Message) => m.sender === 'them' && (m.chatId !== activeChatId || document.hidden));
+            const msgsToNotify = incomingMsgs.filter((m: Message) => m.chatId !== activeChatId || document.hidden);
             for (const m of msgsToNotify) {
               const chat = chats.find(c => c.id === m.chatId);
               const title = chat?.name || 'Новое сообщение';
@@ -300,7 +319,7 @@ const Index = () => {
       } catch { /* noop */ }
     }, 1500);
     return () => clearInterval(interval);
-  }, [user, network.online, activeChatId, loadChats, chats]);
+  }, [user, network.online, activeChatId, loadChats, chats, playNotifSound]);
 
   const handleSelectChat = useCallback((id: string) => {
     setActiveChatId(id);
