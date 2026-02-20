@@ -118,17 +118,26 @@ def handler(event, context):
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'user_id': str(row[0]), 'phone': row[5], 'display_name': row[2], 'avatar': row[4]})}
 
     if method == 'POST' and action == 'search':
-        query = clean_phone(body.get('query', ''))
+        raw_query = body.get('query', '').strip()
         user_id = body.get('user_id', '')
 
-        if not query or len(query) < 5:
+        if not raw_query or len(raw_query) < 2:
             conn.close()
             return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'users': []})}
 
-        cur.execute(
-            f"SELECT id, phone, display_name, avatar, is_online FROM {U} WHERE phone LIKE %s AND id::text != %s LIMIT 20",
-            (f'%{query}%', user_id)
-        )
+        phone_query = clean_phone(raw_query)
+        name_pattern = f'%{raw_query}%'
+
+        if phone_query and len(phone_query) >= 5:
+            cur.execute(
+                f"SELECT id, phone, display_name, avatar, is_online FROM {U} WHERE (phone LIKE %s OR LOWER(display_name) LIKE LOWER(%s)) AND id::text != %s LIMIT 20",
+                (f'%{phone_query}%', name_pattern, user_id)
+            )
+        else:
+            cur.execute(
+                f"SELECT id, phone, display_name, avatar, is_online FROM {U} WHERE LOWER(display_name) LIKE LOWER(%s) AND id::text != %s LIMIT 20",
+                (name_pattern, user_id)
+            )
         users = [{'id': str(r[0]), 'phone': r[1], 'display_name': r[2], 'avatar': r[3], 'online': r[4]} for r in cur.fetchall()]
         conn.close()
 

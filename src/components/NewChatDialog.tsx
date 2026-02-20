@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 import { searchUsers, createChat } from '@/lib/api';
+import { AvatarImg } from '@/lib/avatars';
 
 interface User {
   id: string;
@@ -23,14 +24,15 @@ export default function NewChatDialog({ open, onClose, onChatCreated }: NewChatD
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState('');
+  const [searched, setSearched] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const handleSearch = (value: string) => {
     setQuery(value);
-    const digits = value.replace(/\D/g, '');
 
-    if (digits.length < 4) {
+    if (value.trim().length < 2) {
       setUsers([]);
+      setSearched(false);
       return;
     }
 
@@ -40,6 +42,7 @@ export default function NewChatDialog({ open, onClose, onChatCreated }: NewChatD
       try {
         const result = await searchUsers(value);
         setUsers(result.users || []);
+        setSearched(true);
       } catch {
         setUsers([]);
       } finally {
@@ -57,6 +60,7 @@ export default function NewChatDialog({ open, onClose, onChatCreated }: NewChatD
         onClose();
         setQuery('');
         setUsers([]);
+        setSearched(false);
       }
     } catch {
       // noop
@@ -65,20 +69,24 @@ export default function NewChatDialog({ open, onClose, onChatCreated }: NewChatD
     }
   };
 
-  const digits = query.replace(/\D/g, '');
+  const handleClose = () => {
+    onClose();
+    setQuery('');
+    setUsers([]);
+    setSearched(false);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={v => !v && onClose()}>
+    <Dialog open={open} onOpenChange={v => !v && handleClose()}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Новый чат</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="relative">
-            <Icon name="Phone" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
-              type="tel"
-              placeholder="+7 999 123 45 67"
+              placeholder="Имя или номер телефона"
               value={query}
               onChange={e => handleSearch(e.target.value)}
               className="pl-9"
@@ -87,41 +95,50 @@ export default function NewChatDialog({ open, onClose, onChatCreated }: NewChatD
           </div>
 
           {loading && (
-            <div className="flex items-center justify-center py-4">
-              <Icon name="RefreshCw" size={16} className="animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-6">
+              <Icon name="RefreshCw" size={18} className="animate-spin text-muted-foreground" />
             </div>
           )}
 
-          <div className="space-y-1 max-h-60 overflow-y-auto">
-            {users.map(user => (
-              <button
-                key={user.id}
-                onClick={() => handleSelect(user)}
-                disabled={creating === user.id}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-colors text-left"
-              >
-                <div className="relative flex-shrink-0">
-                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold">
-                    {user.avatar || user.display_name[0]?.toUpperCase()}
+          {!loading && (
+            <div className="space-y-1 max-h-64 overflow-y-auto">
+              {users.map(user => (
+                <button
+                  key={user.id}
+                  onClick={() => handleSelect(user)}
+                  disabled={!!creating}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted transition-colors text-left disabled:opacity-60"
+                >
+                  <div className="relative flex-shrink-0">
+                    <AvatarImg avatar={user.avatar || user.display_name[0]?.toUpperCase() || '?'} size={40} />
+                    {user.online && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-background" />
+                    )}
                   </div>
-                  {user.online && (
-                    <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-background" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{user.display_name}</div>
+                    <div className="text-xs text-muted-foreground">{user.phone}</div>
+                  </div>
+                  {creating === user.id ? (
+                    <Icon name="RefreshCw" size={14} className="animate-spin text-muted-foreground" />
+                  ) : (
+                    <Icon name="MessageCircle" size={16} className="text-muted-foreground" />
                   )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{user.display_name}</div>
-                  <div className="text-xs text-muted-foreground">{user.phone}</div>
-                </div>
-                {creating === user.id && (
-                  <Icon name="RefreshCw" size={14} className="animate-spin text-muted-foreground" />
-                )}
-              </button>
-            ))}
-          </div>
+                </button>
+              ))}
+            </div>
+          )}
 
-          {digits.length >= 4 && !loading && users.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Никого не найдено по этому номеру
+          {!loading && searched && users.length === 0 && (
+            <div className="flex flex-col items-center py-6 gap-2 text-muted-foreground">
+              <Icon name="UserX" size={32} />
+              <p className="text-sm">Никого не найдено</p>
+            </div>
+          )}
+
+          {!loading && !searched && (
+            <p className="text-xs text-muted-foreground text-center py-2">
+              Введите минимум 2 символа для поиска
             </p>
           )}
         </div>
