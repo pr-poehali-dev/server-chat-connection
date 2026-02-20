@@ -376,6 +376,29 @@ const Index = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background">
+      <div className="h-1.5 w-full overflow-hidden flex-shrink-0" aria-hidden>
+        <svg width="100%" height="6" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="evk" x="0" y="0" width="48" height="6" patternUnits="userSpaceOnUse">
+              {/* фон */}
+              <rect width="48" height="6" fill="#1a3a5c"/>
+              {/* красная полоса верх */}
+              <rect y="0" width="48" height="1.2" fill="#c0392b"/>
+              {/* красная полоса низ */}
+              <rect y="4.8" width="48" height="1.2" fill="#c0392b"/>
+              {/* бирюзовые ромбы */}
+              <polygon points="8,3 11,1.5 14,3 11,4.5" fill="#2ab3b0"/>
+              <polygon points="24,3 27,1.5 30,3 27,4.5" fill="#2ab3b0"/>
+              <polygon points="40,3 43,1.5 46,3 43,4.5" fill="#2ab3b0"/>
+              {/* золотые точки */}
+              <circle cx="4" cy="3" r="0.8" fill="#d4a843"/>
+              <circle cx="19" cy="3" r="0.8" fill="#d4a843"/>
+              <circle cx="35" cy="3" r="0.8" fill="#d4a843"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="6" fill="url(#evk)"/>
+        </svg>
+      </div>
       <header className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-card/80 backdrop-blur-sm">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
