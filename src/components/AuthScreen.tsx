@@ -70,7 +70,7 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
           <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
             <Icon name="Shield" size={28} className="text-primary" />
           </div>
-          <h1 className="text-xl font-bold">Шифр</h1>
+          <h1 className="text-xl font-bold">Того</h1>
           <p className="text-sm text-muted-foreground mt-1">Приватный мессенджер</p>
         </div>
 

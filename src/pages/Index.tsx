@@ -381,7 +381,7 @@ const Index = () => {
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
             <Icon name="Shield" size={16} className="text-primary" />
           </div>
-          <span className="font-semibold text-sm tracking-tight">Шифр</span>
+          <span className="font-semibold text-sm tracking-tight">Того</span>
           <span className="text-xs text-muted-foreground ml-1">{user.display_name}</span>
         </div>
         <div className="flex items-center gap-3">

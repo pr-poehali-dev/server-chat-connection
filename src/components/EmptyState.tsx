@@ -6,7 +6,7 @@ export default function EmptyState() {
       <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
         <Icon name="Shield" size={28} className="text-primary" />
       </div>
-      <h2 className="text-lg font-semibold mb-2">Шифр</h2>
+      <h2 className="text-lg font-semibold mb-2">Того</h2>
       <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
         Выберите чат для начала общения. Все сообщения защищены сквозным шифрованием.
       </p>
