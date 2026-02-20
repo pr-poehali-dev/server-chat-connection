@@ -38,16 +38,16 @@ def handler(event, context):
 
     headers = {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'}
     method = event.get('httpMethod', 'GET')
-    path = event.get('path', '/')
-    body = parse_body(event)
-    req_headers = event.get('headers', {})
     params = event.get('queryStringParameters', {}) or {}
+    body = parse_body(event)
+    action = params.get('action', '') or body.get('action', '')
+    req_headers = event.get('headers', {})
     user_id = req_headers.get('x-user-id', '') or body.get('user_id', '') or params.get('user_id', '')
 
     conn = get_db()
     cur = conn.cursor()
 
-    if method == 'GET' and path == '/list':
+    if action == 'list':
         if not user_id:
             conn.close()
             return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'user_id required'})}
@@ -84,7 +84,7 @@ def handler(event, context):
         conn.close()
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'chats': chats})}
 
-    if method == 'POST' and path == '/create':
+    if method == 'POST' and action == 'create':
         partner_id = body.get('partner_id', '')
         if not user_id or not partner_id:
             conn.close()
@@ -117,7 +117,7 @@ def handler(event, context):
             'partner': {'id': str(partner[0]), 'username': partner[1], 'display_name': partner[2], 'avatar': partner[3], 'online': partner[4]} if partner else None
         })}
 
-    if method == 'POST' and path == '/read':
+    if method == 'POST' and action == 'read':
         chat_id = body.get('chat_id', '')
         if user_id and chat_id:
             cur.execute(f"UPDATE {M} SET status = 'delivered' WHERE chat_id = %s::uuid AND sender_id != %s::uuid AND status = 'sent'", (chat_id, user_id))

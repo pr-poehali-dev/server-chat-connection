@@ -7,13 +7,10 @@ function getUserId(): string {
   return id && id !== 'undefined' ? id : '';
 }
 
-async function api(base: string, path: string, options: { method?: string; body?: Record<string, unknown>; params?: Record<string, string> } = {}) {
+async function api(base: string, action: string, options: { method?: string; body?: Record<string, unknown>; params?: Record<string, string> } = {}) {
   const { method = 'GET', body, params } = options;
-  let url = `${base}${path}`;
-  if (params) {
-    const qs = new URLSearchParams(params).toString();
-    url += `?${qs}`;
-  }
+  const qs = new URLSearchParams({ action, ...(params || {}) }).toString();
+  const url = `${base}?${qs}`;
 
   const fetchOptions: RequestInit = { method };
 
@@ -31,21 +28,21 @@ async function api(base: string, path: string, options: { method?: string; body?
 }
 
 export async function register(phone: string, password: string, displayName: string) {
-  return api(AUTH_URL, '/register', {
+  return api(AUTH_URL, 'register', {
     method: 'POST',
     body: { phone, password, display_name: displayName },
   });
 }
 
 export async function login(phone: string, password: string) {
-  return api(AUTH_URL, '/login', {
+  return api(AUTH_URL, 'login', {
     method: 'POST',
     body: { phone, password },
   });
 }
 
 export async function searchUsers(query: string) {
-  return api(AUTH_URL, '/search', {
+  return api(AUTH_URL, 'search', {
     method: 'POST',
     body: { query, user_id: getUserId() },
   });
@@ -54,7 +51,7 @@ export async function searchUsers(query: string) {
 export async function updateStatus(online: boolean) {
   const uid = getUserId();
   if (!uid) return { ok: false };
-  return api(AUTH_URL, '/status', {
+  return api(AUTH_URL, 'status', {
     method: 'POST',
     body: { user_id: uid, online },
   });
@@ -63,28 +60,27 @@ export async function updateStatus(online: boolean) {
 export async function getChats() {
   const uid = getUserId();
   if (!uid) return { chats: [] };
-  return api(CHATS_URL, '/list', {
-    method: 'GET',
+  return api(CHATS_URL, 'list', {
     params: { user_id: uid },
   });
 }
 
 export async function createChat(partnerId: string) {
-  return api(CHATS_URL, '/create', {
+  return api(CHATS_URL, 'create', {
     method: 'POST',
     body: { user_id: getUserId(), partner_id: partnerId },
   });
 }
 
 export async function markChatRead(chatId: string) {
-  return api(CHATS_URL, '/read', {
+  return api(CHATS_URL, 'read', {
     method: 'POST',
     body: { user_id: getUserId(), chat_id: chatId },
   });
 }
 
 export async function sendMessage(chatId: string, text: string, clientId: string) {
-  return api(MESSAGES_URL, '/send', {
+  return api(MESSAGES_URL, 'send', {
     method: 'POST',
     body: { user_id: getUserId(), chat_id: chatId, text, client_id: clientId },
   });
@@ -93,19 +89,19 @@ export async function sendMessage(chatId: string, text: string, clientId: string
 export async function getMessagesList(chatId: string, after?: string) {
   const params: Record<string, string> = { chat_id: chatId };
   if (after) params.after = after;
-  return api(MESSAGES_URL, '/list', { params });
+  return api(MESSAGES_URL, 'list', { params });
 }
 
 export async function pollMessages(after: string) {
   const uid = getUserId();
   if (!uid) return { messages: [] };
-  return api(MESSAGES_URL, '/poll', {
+  return api(MESSAGES_URL, 'poll', {
     params: { after, user_id: uid },
   });
 }
 
 export async function syncMessages(messages: { chat_id: string; text: string; client_id: string }[]) {
-  return api(MESSAGES_URL, '/sync', {
+  return api(MESSAGES_URL, 'sync', {
     method: 'POST',
     body: { user_id: getUserId(), messages },
   });

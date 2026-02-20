@@ -37,16 +37,16 @@ def handler(event, context):
 
     headers = {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'}
     method = event.get('httpMethod', 'GET')
-    path = event.get('path', '/')
+    params = event.get('queryStringParameters', {}) or {}
     body = parse_body(event)
+    action = params.get('action', '') or body.get('action', '')
     req_headers = event.get('headers', {})
-    all_params = event.get('queryStringParameters', {}) or {}
-    user_id = req_headers.get('x-user-id', '') or body.get('user_id', '') or all_params.get('user_id', '')
+    user_id = req_headers.get('x-user-id', '') or body.get('user_id', '') or params.get('user_id', '')
 
     conn = get_db()
     cur = conn.cursor()
 
-    if method == 'POST' and path == '/send':
+    if method == 'POST' and action == 'send':
         chat_id = body.get('chat_id', '')
         text = body.get('text', '').strip()
         client_id = body.get('client_id', '')
@@ -73,10 +73,9 @@ def handler(event, context):
             'created_at': row[1].isoformat(),
         })}
 
-    if method == 'GET' and path == '/list':
-        params = event.get('queryStringParameters', {}) or {}
-        chat_id = params.get('chat_id', '')
-        after = params.get('after', '')
+    if action == 'list':
+        chat_id = params.get('chat_id', '') or body.get('chat_id', '')
+        after = params.get('after', '') or body.get('after', '')
         limit = int(params.get('limit', '50'))
 
         if not chat_id:
@@ -116,7 +115,7 @@ def handler(event, context):
         conn.close()
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'messages': messages})}
 
-    if method == 'POST' and path == '/sync':
+    if method == 'POST' and action == 'sync':
         msgs = body.get('messages', [])
         results = []
         for msg in msgs:
@@ -134,9 +133,8 @@ def handler(event, context):
         conn.close()
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'results': results})}
 
-    if method == 'GET' and path == '/poll':
-        params = event.get('queryStringParameters', {}) or {}
-        after = params.get('after', '')
+    if action == 'poll':
+        after = params.get('after', '') or body.get('after', '')
 
         if not user_id or not after:
             conn.close()

@@ -54,14 +54,15 @@ def handler(event, context):
 
     headers = {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'}
     method = event.get('httpMethod', 'GET')
-    path = event.get('path', '/')
+    params = event.get('queryStringParameters', {}) or {}
     body = parse_body(event)
-    print(f"[AUTH] {method} {path} body_keys={list(body.keys())} isBase64={event.get('isBase64Encoded')}")
+    action = params.get('action', '') or body.get('action', '')
+    print(f"[AUTH] {method} action={action} body_keys={list(body.keys())} isBase64={event.get('isBase64Encoded')}")
 
     conn = get_db()
     cur = conn.cursor()
 
-    if method == 'POST' and path == '/register':
+    if method == 'POST' and action == 'register':
         phone = clean_phone(body.get('phone', ''))
         display_name = body.get('display_name', '').strip()
         password = body.get('password', '')
@@ -96,7 +97,7 @@ def handler(event, context):
 
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'user_id': user_id, 'phone': phone, 'display_name': display_name, 'avatar': avatar})}
 
-    if method == 'POST' and path == '/login':
+    if method == 'POST' and action == 'login':
         phone = clean_phone(body.get('phone', ''))
         password = body.get('password', '')
 
@@ -116,7 +117,7 @@ def handler(event, context):
 
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'user_id': str(row[0]), 'phone': row[5], 'display_name': row[2], 'avatar': row[4]})}
 
-    if method == 'POST' and path == '/search':
+    if method == 'POST' and action == 'search':
         query = clean_phone(body.get('query', ''))
         user_id = body.get('user_id', '')
 
@@ -133,7 +134,7 @@ def handler(event, context):
 
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'users': users})}
 
-    if method == 'POST' and path == '/status':
+    if method == 'POST' and action == 'status':
         user_id = body.get('user_id', '')
         is_online = body.get('online', False)
 
