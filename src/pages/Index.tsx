@@ -375,8 +375,8 @@ const Index = () => {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3 animate-fade-in">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <Icon name="Shield" size={24} className="text-primary" />
+          <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-md">
+            <img src="https://cdn.poehali.dev/projects/2bf6d4f6-893f-48e1-986c-00c5bd829ead/files/79b23ae2-2716-4535-95e2-0056b3f1b56f.jpg" alt="Того" className="w-full h-full object-cover" />
           </div>
           <span className="text-sm text-muted-foreground">Загрузка...</span>
         </div>
