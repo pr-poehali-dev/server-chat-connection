@@ -107,4 +107,11 @@ export async function syncMessages(messages: { chat_id: string; text: string; cl
   });
 }
 
-export default { register, login, searchUsers, updateStatus, getChats, createChat, markChatRead, sendMessage, getMessagesList, pollMessages, syncMessages };
+export async function updateProfile(displayName: string, avatar: string) {
+  return api(AUTH_URL, 'update_profile', {
+    method: 'POST',
+    body: { user_id: getUserId(), display_name: displayName, avatar },
+  });
+}
+
+export default { register, login, searchUsers, updateStatus, getChats, createChat, markChatRead, sendMessage, getMessagesList, pollMessages, syncMessages, updateProfile };

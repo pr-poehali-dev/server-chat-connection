@@ -134,6 +134,34 @@ def handler(event, context):
 
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'users': users})}
 
+    if method == 'POST' and action == 'update_profile':
+        user_id = body.get('user_id', '')
+        display_name = body.get('display_name', '').strip()
+        avatar = body.get('avatar', '').strip()
+
+        if not user_id:
+            conn.close()
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'user_id required'})}
+
+        if display_name:
+            if not avatar:
+                avatar = display_name[0].upper()
+            cur.execute(f"UPDATE {U} SET display_name = %s, avatar = %s WHERE id = %s::uuid RETURNING id, phone, display_name, avatar", (display_name, avatar, user_id))
+        elif avatar:
+            cur.execute(f"UPDATE {U} SET avatar = %s WHERE id = %s::uuid RETURNING id, phone, display_name, avatar", (avatar, user_id))
+        else:
+            conn.close()
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'display_name or avatar required'})}
+
+        row = cur.fetchone()
+        conn.commit()
+        conn.close()
+
+        if not row:
+            return {'statusCode': 404, 'headers': headers, 'body': json.dumps({'error': 'user not found'})}
+
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'user_id': user_id, 'phone': row[1], 'display_name': row[2], 'avatar': row[3]})}
+
     if method == 'POST' and action == 'status':
         user_id = body.get('user_id', '')
         is_online = body.get('online', False)

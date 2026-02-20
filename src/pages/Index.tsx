@@ -57,6 +57,123 @@ function toLocalMessage(sm: ServerMessage, userId: string): Message {
   };
 }
 
+const EMOJI_AVATARS = ['😀','😎','🤖','👾','🦊','🐼','🐸','🦁','🐯','🦄','🔥','⚡','🌊','🍀','🎯','🚀'];
+
+function ProfileScreen({ user, onUpdate, onLogout }: {
+  user: { user_id: string; phone?: string; display_name: string; avatar: string };
+  onUpdate: (u: { user_id: string; phone?: string; display_name: string; avatar: string }) => void;
+  onLogout: () => void;
+}) {
+  const [editName, setEditName] = useState(false);
+  const [name, setName] = useState(user.display_name);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSaveName = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    setError('');
+    const result = await api.updateProfile(name.trim(), user.avatar);
+    setSaving(false);
+    if (result.error) { setError(result.error); return; }
+    const updated = { ...user, display_name: result.display_name, avatar: result.avatar };
+    localStorage.setItem('cipher_user', JSON.stringify(updated));
+    onUpdate(updated);
+    setEditName(false);
+  };
+
+  const handleSetAvatar = async (emoji: string) => {
+    setSaving(true);
+    const result = await api.updateProfile(user.display_name, emoji);
+    setSaving(false);
+    if (result.error) return;
+    const updated = { ...user, avatar: result.avatar };
+    localStorage.setItem('cipher_user', JSON.stringify(updated));
+    onUpdate(updated);
+  };
+
+  const isEmoji = EMOJI_AVATARS.includes(user.avatar);
+
+  return (
+    <div className="flex-1 flex flex-col items-center p-6 gap-6 overflow-y-auto">
+      <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center text-4xl font-bold text-primary select-none">
+        {user.avatar}
+      </div>
+
+      <div className="w-full max-w-sm space-y-4">
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="text-xs text-muted-foreground mb-1">Имя</div>
+          {editName ? (
+            <div className="flex gap-2 mt-1">
+              <input
+                className="flex-1 bg-background border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-primary"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSaveName()}
+                autoFocus
+              />
+              <button onClick={handleSaveName} disabled={saving} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50">
+                {saving ? '...' : 'Сохранить'}
+              </button>
+              <button onClick={() => { setEditName(false); setName(user.display_name); }} className="px-3 py-1.5 rounded-lg border border-border text-sm">
+                Отмена
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between mt-1">
+              <span className="font-medium">{user.display_name}</span>
+              <button onClick={() => setEditName(true)} className="p-1.5 hover:bg-muted rounded-md transition-colors">
+                <Icon name="Pencil" size={14} className="text-muted-foreground" />
+              </button>
+            </div>
+          )}
+          {error && <div className="text-xs text-red-500 mt-1">{error}</div>}
+        </div>
+
+        {user.phone && (
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="text-xs text-muted-foreground mb-1">Телефон</div>
+            <div className="font-medium">{user.phone}</div>
+          </div>
+        )}
+
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="text-xs text-muted-foreground mb-3">Аватар</div>
+          <div className="grid grid-cols-8 gap-2">
+            {EMOJI_AVATARS.map(emoji => (
+              <button
+                key={emoji}
+                onClick={() => handleSetAvatar(emoji)}
+                disabled={saving}
+                className={`w-9 h-9 rounded-xl text-xl flex items-center justify-center transition-colors ${user.avatar === emoji ? 'bg-primary/20 ring-2 ring-primary' : 'hover:bg-muted'}`}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+          {!isEmoji && (
+            <button
+              onClick={() => handleSetAvatar(user.display_name[0]?.toUpperCase() || '?')}
+              disabled={saving}
+              className="mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Сбросить к букве
+            </button>
+          )}
+        </div>
+
+        <button
+          onClick={onLogout}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm text-destructive hover:bg-destructive/10 transition-colors"
+        >
+          <Icon name="LogOut" size={16} />
+          Выйти из аккаунта
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const Index = () => {
   const [user, setUser] = useState<{ user_id: string; phone?: string; display_name: string; avatar: string } | null>(null);
   const [chats, setChats] = useState<Chat[]>([]);
@@ -295,22 +412,7 @@ const Index = () => {
         )}
 
         {activeTab === 'profile' && (
-          <div className="flex-1 flex flex-col items-center justify-start p-6 gap-6">
-            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-3xl font-bold text-primary">
-              {user.avatar}
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-semibold">{user.display_name}</div>
-              {user.phone && <div className="text-sm text-muted-foreground mt-1">{user.phone}</div>}
-            </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm text-destructive hover:bg-destructive/10 transition-colors"
-            >
-              <Icon name="LogOut" size={16} />
-              Выйти из аккаунта
-            </button>
-          </div>
+          <ProfileScreen user={user} onUpdate={setUser} onLogout={handleLogout} />
         )}
       </div>
 
