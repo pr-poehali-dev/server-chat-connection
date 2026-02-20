@@ -5,6 +5,7 @@ import * as api from '@/lib/api';
 import useNetwork from '@/hooks/use-network';
 import useMessageQueue from '@/hooks/use-message-queue';
 import NetworkStatus from '@/components/NetworkStatus';
+import OfflineScreen from '@/components/OfflineScreen';
 import ChatList from '@/components/ChatList';
 import ChatWindow from '@/components/ChatWindow';
 import EmptyState from '@/components/EmptyState';
@@ -384,6 +385,8 @@ const Index = () => {
   }
 
   if (!user) return <AuthScreen onAuth={handleAuth} />;
+
+  if (!network.online && chats.length === 0) return <OfflineScreen />;
 
   const activeChat = chats.find(c => c.id === activeChatId);
   const inChat = !!activeChatId;
