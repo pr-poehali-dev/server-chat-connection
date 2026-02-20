@@ -5,46 +5,46 @@
 @layer base {
   :root {
     /* Эвенкия — светлая тема: тайга, мох, кора лиственницы */
-    --background: 150 18% 91%;
-    --foreground: 220 35% 12%;
+    --background: 150 22% 82%;
+    --foreground: 220 35% 10%;
 
-    --card: 150 14% 96%;
-    --card-foreground: 220 35% 12%;
+    --card: 150 20% 88%;
+    --card-foreground: 220 35% 10%;
 
-    --popover: 150 14% 96%;
-    --popover-foreground: 220 35% 12%;
+    --popover: 150 20% 88%;
+    --popover-foreground: 220 35% 10%;
 
     /* Бирюзовый бисер — акцент */
-    --primary: 181 55% 38%;
+    --primary: 181 55% 36%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 150 15% 84%;
-    --secondary-foreground: 220 30% 20%;
+    --secondary: 150 18% 76%;
+    --secondary-foreground: 220 30% 18%;
 
-    --muted: 150 12% 87%;
-    --muted-foreground: 220 12% 48%;
+    --muted: 150 16% 79%;
+    --muted-foreground: 220 12% 42%;
 
-    --accent: 181 55% 38%;
+    --accent: 181 55% 36%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 4 72% 48%;
     --destructive-foreground: 0 0% 100%;
 
     /* Граница — хвоя */
-    --border: 150 15% 80%;
-    --input: 150 15% 80%;
-    --ring: 181 55% 38%;
+    --border: 150 18% 70%;
+    --input: 150 18% 70%;
+    --ring: 181 55% 36%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 150 18% 88%;
-    --sidebar-foreground: 220 30% 18%;
-    --sidebar-primary: 181 55% 38%;
+    --sidebar-background: 150 22% 78%;
+    --sidebar-foreground: 220 30% 14%;
+    --sidebar-primary: 181 55% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 150 12% 84%;
-    --sidebar-accent-foreground: 220 30% 18%;
-    --sidebar-border: 150 15% 78%;
-    --sidebar-ring: 181 55% 38%;
+    --sidebar-accent: 150 16% 75%;
+    --sidebar-accent-foreground: 220 30% 14%;
+    --sidebar-border: 150 18% 68%;
+    --sidebar-ring: 181 55% 36%;
 
     --online: 142 60% 40%;
     --offline: 4 72% 48%;
