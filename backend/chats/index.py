@@ -59,8 +59,8 @@ def handler(event, context):
                    (SELECT created_at FROM {M} WHERE chat_id = c.id ORDER BY created_at DESC LIMIT 1),
                    (SELECT COUNT(*) FROM {M} WHERE chat_id = c.id AND sender_id != %s::uuid AND status = 'sent')
             FROM {C} c
-            JOIN {CM} cm ON cm.chat_id = c.id AND cm.user_id = %s::uuid
-            LEFT JOIN {CM} cm2 ON cm2.chat_id = c.id AND cm2.user_id != %s::uuid
+            JOIN {CM} cm ON cm.chat_id = c.id AND cm.user_id = %s::uuid AND cm.left_at IS NULL
+            LEFT JOIN {CM} cm2 ON cm2.chat_id = c.id AND cm2.user_id != %s::uuid AND cm2.left_at IS NULL
             LEFT JOIN {U} u2 ON u2.id = cm2.user_id
             ORDER BY (SELECT created_at FROM {M} WHERE chat_id = c.id ORDER BY created_at DESC LIMIT 1) DESC NULLS LAST
         """, (user_id, user_id, user_id))

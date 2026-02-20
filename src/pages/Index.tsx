@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { IMAGE_AVATARS, AvatarImg } from '@/lib/avatars';
-import { type Chat, type Message, saveChat, saveMessage, getMessages as getLocalMessages, getChats as getLocalChats } from '@/lib/storage';
+import { type Chat, type Message, saveChat, saveMessage, getMessages as getLocalMessages, getChats as getLocalChats, deleteLocalMessage, deleteLocalChat } from '@/lib/storage';
 import * as api from '@/lib/api';
 import useNetwork from '@/hooks/use-network';
 import useMessageQueue from '@/hooks/use-message-queue';
@@ -326,6 +326,20 @@ const Index = () => {
 
   const handleBack = useCallback(() => setActiveChatId(null), []);
 
+  const handleDeleteMessage = useCallback(async (msgId: string, forAll: boolean) => {
+    await deleteLocalMessage(msgId);
+    setMessages(prev => prev.filter(m => m.id !== msgId));
+    if (network.online) api.deleteMessage(msgId, forAll);
+  }, [network.online]);
+
+  const handleLeaveChat = useCallback(async () => {
+    if (!activeChatId) return;
+    if (network.online) await api.leaveChat(activeChatId);
+    await deleteLocalChat(activeChatId);
+    setChats(prev => prev.filter(c => c.id !== activeChatId));
+    setActiveChatId(null);
+  }, [activeChatId, network.online]);
+
   const handleAuth = useCallback((userData: { user_id: string; phone?: string; display_name: string; avatar: string }) => {
     setUser(userData);
     lastPollRef.current = new Date().toISOString();
@@ -423,7 +437,7 @@ const Index = () => {
             </aside>
             <main className={`flex-1 min-w-0 ${!inChat ? 'hidden lg:flex' : 'flex'} flex-col`}>
               {activeChat ? (
-                <ChatWindow chat={activeChat} messages={messages} online={network.online} onSend={handleSend} onBack={handleBack} onCall={handleCallFromChat} />
+                <ChatWindow chat={activeChat} messages={messages} online={network.online} onSend={handleSend} onBack={handleBack} onCall={handleCallFromChat} onDeleteMessage={handleDeleteMessage} onLeaveChat={handleLeaveChat} />
               ) : (
                 <EmptyState />
               )}

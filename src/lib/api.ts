@@ -120,4 +120,18 @@ export async function updateProfile(displayName: string, avatar: string) {
   });
 }
 
-export default { register, login, searchUsers, updateStatus, getChats, createChat, markChatRead, sendMessage, getMessagesList, pollMessages, syncMessages, updateProfile };
+export async function deleteMessage(msgId: string, forAll: boolean) {
+  return api(MESSAGES_URL, 'delete_message', {
+    method: 'POST',
+    body: { user_id: getUserId(), msg_id: msgId, for_all: forAll },
+  });
+}
+
+export async function leaveChat(chatId: string) {
+  return api(MESSAGES_URL, 'leave_chat', {
+    method: 'POST',
+    body: { user_id: getUserId(), chat_id: chatId },
+  });
+}
+
+export default { register, login, searchUsers, updateStatus, getChats, createChat, markChatRead, sendMessage, getMessagesList, pollMessages, syncMessages, updateProfile, deleteMessage, leaveChat };

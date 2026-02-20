@@ -122,4 +122,24 @@ export async function removeFromQueue(id: string): Promise<void> {
   });
 }
 
-export default { saveMessage, getMessages, saveChat, getChats, addToQueue, getQueue, removeFromQueue };
+export async function deleteLocalMessage(id: string): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('messages', 'readwrite');
+    tx.objectStore('messages').delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+export async function deleteLocalChat(id: string): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('chats', 'readwrite');
+    tx.objectStore('chats').delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+export default { saveMessage, getMessages, saveChat, getChats, addToQueue, getQueue, removeFromQueue, deleteLocalMessage, deleteLocalChat };

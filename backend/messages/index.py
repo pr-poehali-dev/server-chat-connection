@@ -1,6 +1,7 @@
 import json
 import os
 import psycopg2
+from datetime import datetime
 
 S = os.environ.get('MAIN_DB_SCHEMA', 'public')
 U = f'"{S}".users'
@@ -82,20 +83,25 @@ def handler(event, context):
             conn.close()
             return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'chat_id required'})}
 
+        uid_filter = user_id or '00000000-0000-0000-0000-000000000000'
         if after:
             cur.execute(f"""
                 SELECT m.id, m.chat_id, m.sender_id, m.text, m.status, m.created_at, u.display_name, u.avatar
                 FROM {M} m JOIN {U} u ON u.id = m.sender_id
                 WHERE m.chat_id = %s::uuid AND m.created_at > %s::timestamp
+                  AND m.hidden_for_all = false
+                  AND (m.hidden_by IS NULL OR m.hidden_by != %s::uuid OR m.sender_id = %s::uuid)
                 ORDER BY m.created_at ASC LIMIT %s
-            """, (chat_id, after, limit))
+            """, (chat_id, after, uid_filter, uid_filter, limit))
         else:
             cur.execute(f"""
                 SELECT m.id, m.chat_id, m.sender_id, m.text, m.status, m.created_at, u.display_name, u.avatar
                 FROM {M} m JOIN {U} u ON u.id = m.sender_id
                 WHERE m.chat_id = %s::uuid
+                  AND m.hidden_for_all = false
+                  AND (m.hidden_by IS NULL OR m.hidden_by != %s::uuid OR m.sender_id = %s::uuid)
                 ORDER BY m.created_at DESC LIMIT %s
-            """, (chat_id, limit))
+            """, (chat_id, uid_filter, uid_filter, limit))
 
         rows = cur.fetchall()
         if not after:
@@ -144,8 +150,9 @@ def handler(event, context):
             SELECT m.id, m.chat_id, m.sender_id, m.text, m.status, m.created_at, u.display_name, u.avatar
             FROM {M} m
             JOIN {U} u ON u.id = m.sender_id
-            JOIN {CM} cm ON cm.chat_id = m.chat_id AND cm.user_id = %s::uuid
+            JOIN {CM} cm ON cm.chat_id = m.chat_id AND cm.user_id = %s::uuid AND cm.left_at IS NULL
             WHERE m.created_at > %s::timestamp AND m.sender_id != %s::uuid
+              AND m.hidden_for_all = false
             ORDER BY m.created_at ASC LIMIT 100
         """, (user_id, after, user_id))
 
@@ -162,6 +169,50 @@ def handler(event, context):
 
         conn.close()
         return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'messages': messages})}
+
+    if method == 'POST' and action == 'delete_message':
+        msg_id = body.get('msg_id', '')
+        delete_for_all = body.get('for_all', False)
+
+        if not user_id or not msg_id:
+            conn.close()
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'user_id and msg_id required'})}
+
+        cur.execute(f"SELECT sender_id, created_at FROM {M} WHERE id = %s::uuid", (msg_id,))
+        row = cur.fetchone()
+        if not row:
+            conn.close()
+            return {'statusCode': 404, 'headers': headers, 'body': json.dumps({'error': 'Message not found'})}
+
+        sender_id = str(row[0])
+        created_at = row[1]
+        age_hours = (datetime.utcnow() - created_at).total_seconds() / 3600
+
+        if delete_for_all:
+            if sender_id != user_id:
+                conn.close()
+                return {'statusCode': 403, 'headers': headers, 'body': json.dumps({'error': 'Только автор может удалить для всех'})}
+            if age_hours > 24:
+                conn.close()
+                return {'statusCode': 403, 'headers': headers, 'body': json.dumps({'error': 'Можно удалить для всех только в течение 24 часов'})}
+            cur.execute(f"UPDATE {M} SET hidden_for_all = true, hidden_at = now(), hidden_by = %s::uuid WHERE id = %s::uuid", (user_id, msg_id))
+        else:
+            cur.execute(f"UPDATE {M} SET hidden_by = %s::uuid WHERE id = %s::uuid AND hidden_by IS NULL", (user_id, msg_id))
+
+        conn.commit()
+        conn.close()
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'ok': True, 'msg_id': msg_id, 'for_all': delete_for_all})}
+
+    if method == 'POST' and action == 'leave_chat':
+        chat_id = body.get('chat_id', '')
+        if not user_id or not chat_id:
+            conn.close()
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'user_id and chat_id required'})}
+
+        cur.execute(f"UPDATE {CM} SET left_at = now() WHERE chat_id = %s::uuid AND user_id = %s::uuid AND left_at IS NULL", (chat_id, user_id))
+        conn.commit()
+        conn.close()
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'ok': True})}
 
     conn.close()
     return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'service': 'messages', 'status': 'ok'})}
