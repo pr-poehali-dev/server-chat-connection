@@ -45,18 +45,23 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
     setLoading(true);
 
     try {
+      console.log('[AUTH] submitting', mode, 'phone digits:', phone.replace(/\D/g, '').length);
       const result = mode === 'login'
         ? await login(phone, password)
         : await register(phone, password, displayName || phone);
+      console.log('[AUTH] result:', result);
 
       if (result.error) {
         setError(result.error);
-      } else {
+      } else if (result.user_id) {
         localStorage.setItem('cipher_user_id', result.user_id);
         localStorage.setItem('cipher_user', JSON.stringify(result));
         onAuth(result);
+      } else {
+        setError('Ошибка соединения. Попробуй ещё раз.');
       }
-    } catch {
+    } catch (err) {
+      console.error('[AUTH] submit error:', err);
       setError('Ошибка соединения. Проверьте интернет.');
     } finally {
       setLoading(false);
