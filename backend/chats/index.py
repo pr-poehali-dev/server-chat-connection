@@ -117,6 +117,36 @@ def handler(event, context):
             'partner': {'id': str(partner[0]), 'username': partner[1], 'display_name': partner[2], 'avatar': partner[3], 'online': partner[4]} if partner else None
         })}
 
+    if method == 'POST' and action == 'create_group':
+        name = body.get('name', '').strip()
+        member_ids = body.get('member_ids', [])
+
+        if not user_id or not name:
+            conn.close()
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'user_id and name required'})}
+
+        if len(member_ids) < 1:
+            conn.close()
+            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'error': 'Добавьте хотя бы одного участника'})}
+
+        avatar = name[0].upper()
+        cur.execute(f"INSERT INTO {C} (is_group, name) VALUES (true, %s) RETURNING id", (name,))
+        chat_id = str(cur.fetchone()[0])
+
+        all_members = list(set([user_id] + member_ids))
+        for mid in all_members:
+            cur.execute(f"INSERT INTO {CM} (chat_id, user_id) VALUES (%s::uuid, %s::uuid)", (chat_id, mid))
+
+        conn.commit()
+        conn.close()
+
+        return {'statusCode': 200, 'headers': headers, 'body': json.dumps({
+            'chat_id': chat_id,
+            'name': name,
+            'avatar': avatar,
+            'is_group': True,
+        })}
+
     if method == 'POST' and action == 'read':
         chat_id = body.get('chat_id', '')
         if user_id and chat_id:

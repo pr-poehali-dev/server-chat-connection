@@ -77,6 +77,13 @@ export async function createChat(partnerId: string) {
   });
 }
 
+export async function createGroup(name: string, memberIds: string[]) {
+  return api(CHATS_URL, 'create_group', {
+    method: 'POST',
+    body: { user_id: getUserId(), name, member_ids: memberIds },
+  });
+}
+
 export async function markChatRead(chatId: string) {
   return api(CHATS_URL, 'read', {
     method: 'POST',
