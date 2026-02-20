@@ -1,10 +1,11 @@
 import Icon from '@/components/ui/icon';
 
 export default function EmptyState() {
+
   return (
     <div className="flex flex-col items-center justify-center h-full text-center px-8 animate-fade-in">
-      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
-        <Icon name="Shield" size={28} className="text-primary" />
+      <div className="w-16 h-16 rounded-2xl overflow-hidden mb-5 shadow-md">
+        <img src="https://cdn.poehali.dev/projects/2bf6d4f6-893f-48e1-986c-00c5bd829ead/files/79b23ae2-2716-4535-95e2-0056b3f1b56f.jpg" alt="Того" className="w-full h-full object-cover" />
       </div>
       <h2 className="text-lg font-semibold mb-2">Того</h2>
       <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">

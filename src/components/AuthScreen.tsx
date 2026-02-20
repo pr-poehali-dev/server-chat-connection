@@ -67,8 +67,8 @@ export default function AuthScreen({ onAuth }: AuthScreenProps) {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm animate-fade-in">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-            <Icon name="Shield" size={28} className="text-primary" />
+          <div className="w-16 h-16 rounded-2xl overflow-hidden mb-4 shadow-md">
+            <img src="https://cdn.poehali.dev/projects/2bf6d4f6-893f-48e1-986c-00c5bd829ead/files/79b23ae2-2716-4535-95e2-0056b3f1b56f.jpg" alt="Того" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-xl font-bold">Того</h1>
           <p className="text-sm text-muted-foreground mt-1">Приватный мессенджер</p>
