@@ -48,7 +48,7 @@ def parse_body(event):
         return {}
 
 def handler(event, context):
-    """Регистрация и авторизация пользователей мессенджера по телефону"""
+    """Регистрация и авторизация пользователей мессенджера Того по телефону"""
     if event.get('httpMethod') == 'OPTIONS':
         return {'statusCode': 200, 'headers': {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, X-User-Id, X-Auth-Token, X-Session-Id', 'Access-Control-Max-Age': '86400'}, 'body': ''}
 

@@ -22,6 +22,9 @@ async function api(base: string, action: string, options: { method?: string; bod
 
   try {
     const res = await fetch(url, fetchOptions);
+    if (res.status === 402) {
+      return { error: 'Сервер временно недоступен. Попробуй через минуту.' };
+    }
     const data = await res.json().catch(() => ({}));
     if (!res.ok && !data.error) {
       data.error = `Ошибка сервера (${res.status})`;
