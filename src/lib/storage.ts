@@ -16,6 +16,7 @@ export interface Chat {
   lastTimestamp?: number;
   unread: number;
   online: boolean;
+  partnerId?: string;
 }
 
 const DB_NAME = 'cipher_messenger';

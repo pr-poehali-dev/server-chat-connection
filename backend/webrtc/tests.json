@@ -1,0 +1,1 @@
+{"tests": [{"name": "Health check", "method": "GET", "path": "/", "expectedStatus": 200, "expectedBody": {"service": "string"}, "bodyMatcher": "partial"}, {"name": "Poll without user_id", "method": "GET", "path": "/?action=poll", "expectedStatus": 400, "expectedBody": {"error": "string"}, "bodyMatcher": "partial"}]}

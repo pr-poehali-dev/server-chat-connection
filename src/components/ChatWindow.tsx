@@ -115,7 +115,7 @@ export default function ChatWindow({ chat, messages, online, onSend, onBack, onC
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {onCall && (
+          {onCall && chat.partnerId && (
             <>
               <button onClick={() => onCall('voice')} className="p-2 hover:bg-muted rounded-md transition-colors">
                 <Icon name="Phone" size={16} className="text-muted-foreground" />

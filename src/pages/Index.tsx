@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { useChatData } from '@/hooks/use-chat-data';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useChatData, saveCallToHistory } from '@/hooks/use-chat-data';
+import useWebRTC from '@/hooks/use-webrtc';
+import * as api from '@/lib/api';
 import AppHeader from '@/components/AppHeader';
 import ProfileScreen from '@/components/ProfileScreen';
 import OfflineScreen from '@/components/OfflineScreen';
@@ -12,9 +14,22 @@ import BottomNav, { type TabId } from '@/components/BottomNav';
 import StatusScreen from '@/components/StatusScreen';
 import CallsScreen from '@/components/CallsScreen';
 import CallOverlay from '@/components/CallOverlay';
+import IncomingCallOverlay from '@/components/IncomingCallOverlay';
+
+interface IncomingCallData {
+  id: string;
+  caller_id: string;
+  chat_id: string;
+  call_type: 'voice' | 'video';
+  sdp_offer: string;
+  peer_name: string;
+  peer_avatar: string;
+  ice_candidates?: { id: string; candidate: string }[];
+}
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabId>('chats');
+  const [incomingCall, setIncomingCall] = useState<IncomingCallData | null>(null);
 
   const {
     user, setUser,
@@ -23,7 +38,6 @@ const Index = () => {
     messages,
     initialized,
     newChatOpen, setNewChatOpen,
-    activeCall, setActiveCall,
     network,
     syncing, queueLength,
     handleSelectChat,
@@ -34,9 +48,65 @@ const Index = () => {
     handleAuth,
     handleLogout,
     handleChatCreated,
-    handleStartCall,
-    handleCallFromChat,
   } = useChatData();
+
+  const webrtc = useWebRTC(user?.user_id || null);
+  const incomingPollRef = useRef<ReturnType<typeof setInterval>>();
+
+  useEffect(() => {
+    if (!user || !network.online) {
+      if (incomingPollRef.current) clearInterval(incomingPollRef.current);
+      return;
+    }
+
+    incomingPollRef.current = setInterval(async () => {
+      if (webrtc.callState !== 'idle' || incomingCall) return;
+      try {
+        const res = await api.pollCall();
+        if (res.call && res.call.callee_id === user.user_id && res.call.status === 'ringing') {
+          setIncomingCall({
+            id: res.call.id,
+            caller_id: res.call.caller_id,
+            chat_id: res.call.chat_id,
+            call_type: res.call.call_type,
+            sdp_offer: res.call.sdp_offer,
+            peer_name: res.call.peer_name,
+            peer_avatar: res.call.peer_avatar,
+            ice_candidates: res.ice_candidates,
+          });
+        }
+      } catch { /* noop */ }
+    }, 2000);
+
+    return () => { if (incomingPollRef.current) clearInterval(incomingPollRef.current); };
+  }, [user, network.online, webrtc.callState, incomingCall]);
+
+  const handleStartCall = useCallback((chat: typeof chats[0], type: 'voice' | 'video') => {
+    if (!chat.partnerId || webrtc.callState !== 'idle') return;
+    saveCallToHistory(chat, type, 'outgoing');
+    webrtc.startCall(chat.partnerId, chat.id, type, chat.name, chat.avatar);
+  }, [chats, webrtc]);
+
+  const handleCallFromChat = useCallback((type: 'voice' | 'video') => {
+    const chat = chats.find(c => c.id === activeChatId);
+    if (chat) handleStartCall(chat, type);
+  }, [chats, activeChatId, handleStartCall]);
+
+  const handleAcceptIncoming = useCallback(() => {
+    if (!incomingCall) return;
+    const chat = chats.find(c => c.id === incomingCall.chat_id);
+    if (chat) saveCallToHistory(chat, incomingCall.call_type, 'incoming');
+    webrtc.acceptCall(incomingCall);
+    setIncomingCall(null);
+  }, [incomingCall, chats, webrtc]);
+
+  const handleRejectIncoming = useCallback(() => {
+    if (!incomingCall) return;
+    const chat = chats.find(c => c.id === incomingCall.chat_id);
+    if (chat) saveCallToHistory(chat, incomingCall.call_type, 'missed');
+    webrtc.rejectCurrentCall(incomingCall.id);
+    setIncomingCall(null);
+  }, [incomingCall, chats, webrtc]);
 
   const totalUnread = chats.reduce((sum, c) => sum + c.unread, 0);
 
@@ -108,8 +178,27 @@ const Index = () => {
         <BottomNav active={activeTab} onChange={(tab) => { if (tab !== 'chats') setActiveChatId(null); setActiveTab(tab); }} unreadChats={totalUnread} />
       )}
 
-      {activeCall && (
-        <CallOverlay chat={activeCall.chat} callType={activeCall.type} onEnd={() => setActiveCall(null)} />
+      {webrtc.callState !== 'idle' && webrtc.callInfo && (
+        <CallOverlay
+          callState={webrtc.callState}
+          callInfo={webrtc.callInfo}
+          duration={webrtc.duration}
+          muted={webrtc.muted}
+          speakerOn={webrtc.speakerOn}
+          onEnd={webrtc.endCurrentCall}
+          onToggleMute={webrtc.toggleMute}
+          onToggleSpeaker={webrtc.toggleSpeaker}
+        />
+      )}
+
+      {incomingCall && webrtc.callState === 'idle' && (
+        <IncomingCallOverlay
+          peerName={incomingCall.peer_name}
+          peerAvatar={incomingCall.peer_avatar}
+          callType={incomingCall.call_type}
+          onAccept={handleAcceptIncoming}
+          onReject={handleRejectIncoming}
+        />
       )}
 
       <NewChatDialog open={newChatOpen} onClose={() => setNewChatOpen(false)} onChatCreated={handleChatCreated} />

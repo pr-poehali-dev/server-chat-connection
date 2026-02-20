@@ -8,6 +8,7 @@ export interface ServerChat {
   last_message: string;
   last_timestamp: string | null;
   unread: number;
+  partner_id?: string;
 }
 
 export interface ServerMessage {
@@ -28,6 +29,7 @@ export function toLocalChat(sc: ServerChat): Chat {
     lastTimestamp: sc.last_timestamp ? new Date(sc.last_timestamp).getTime() : undefined,
     unread: sc.unread || 0,
     online: sc.online,
+    partnerId: sc.partner_id,
   };
 }
 

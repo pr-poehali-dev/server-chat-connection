@@ -2,6 +2,7 @@ const AUTH_URL = 'https://functions.poehali.dev/dcfb261d-6e0d-4154-ae10-3f12cedb
 const CHATS_URL = 'https://functions.poehali.dev/77f17e43-1b58-4050-836e-28b21cbcb6c1';
 const MESSAGES_URL = 'https://functions.poehali.dev/095f98e5-52f9-43b3-a2c8-578cf045f6e9';
 const STATUSES_URL = 'https://functions.poehali.dev/0f0ea2b7-d2ed-4a9b-883f-05d4e2f5b3dd';
+const WEBRTC_URL = 'https://functions.poehali.dev/804eac05-4299-4054-b8d8-791c06ffcd8b';
 
 function getUserId(): string {
   const id = localStorage.getItem('cipher_user_id');
@@ -174,4 +175,48 @@ export async function removeStatus(statusId: string) {
   });
 }
 
-export default { register, login, searchUsers, updateStatus, getChats, createChat, markChatRead, sendMessage, getMessagesList, pollMessages, syncMessages, updateProfile, deleteMessage, leaveChat, getStatuses, publishStatus, removeStatus };
+export async function initiateCall(calleeId: string, chatId: string, callType: string, sdpOffer: string) {
+  return api(WEBRTC_URL, 'initiate', {
+    method: 'POST',
+    body: { user_id: getUserId(), callee_id: calleeId, chat_id: chatId, call_type: callType, sdp_offer: sdpOffer },
+  });
+}
+
+export async function answerCall(callId: string, sdpAnswer: string) {
+  return api(WEBRTC_URL, 'answer', {
+    method: 'POST',
+    body: { user_id: getUserId(), call_id: callId, sdp_answer: sdpAnswer },
+  });
+}
+
+export async function sendIceCandidate(callId: string, candidate: string) {
+  return api(WEBRTC_URL, 'ice', {
+    method: 'POST',
+    body: { user_id: getUserId(), call_id: callId, candidate },
+    silent: true,
+  });
+}
+
+export async function endCall(callId: string) {
+  return api(WEBRTC_URL, 'end', {
+    method: 'POST',
+    body: { user_id: getUserId(), call_id: callId },
+  });
+}
+
+export async function rejectCall(callId: string) {
+  return api(WEBRTC_URL, 'reject', {
+    method: 'POST',
+    body: { user_id: getUserId(), call_id: callId },
+  });
+}
+
+export async function pollCall() {
+  const uid = getUserId();
+  if (!uid) return { call: null };
+  return api(WEBRTC_URL, 'poll', { params: { user_id: uid }, silent: true });
+}
+
+export { getUserId };
+
+export default { register, login, searchUsers, updateStatus, getChats, createChat, markChatRead, sendMessage, getMessagesList, pollMessages, syncMessages, updateProfile, deleteMessage, leaveChat, getStatuses, publishStatus, removeStatus, initiateCall, answerCall, sendIceCandidate, endCall, rejectCall, pollCall };

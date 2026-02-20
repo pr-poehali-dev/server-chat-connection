@@ -7,7 +7,7 @@ import { type ServerChat, type ServerMessage, toLocalChat, toLocalMessage } from
 
 export type UserData = { user_id: string; phone?: string; display_name: string; avatar: string };
 
-function saveCallToHistory(chat: Chat, callType: 'voice' | 'video') {
+export function saveCallToHistory(chat: Chat, callType: 'voice' | 'video', type: 'outgoing' | 'incoming' | 'missed' = 'outgoing') {
   try {
     const raw = localStorage.getItem('cipher_call_history');
     const history = raw ? JSON.parse(raw) : [];
@@ -16,7 +16,7 @@ function saveCallToHistory(chat: Chat, callType: 'voice' | 'video') {
       chatId: chat.id,
       name: chat.name,
       avatar: chat.avatar,
-      type: 'outgoing' as const,
+      type,
       callType,
       timestamp: Date.now(),
     };
@@ -34,7 +34,6 @@ export function useChatData() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [initialized, setInitialized] = useState(false);
   const [newChatOpen, setNewChatOpen] = useState(false);
-  const [activeCall, setActiveCall] = useState<{ chat: Chat; type: 'voice' | 'video' } | null>(null);
   const lastPollRef = useRef<string>(new Date().toISOString());
   const notifPermRef = useRef<NotificationPermission>('default');
 
@@ -250,19 +249,6 @@ export function useChatData() {
     loadChats().then(() => setActiveChatId(chatId));
   }, [loadChats]);
 
-  const handleStartCall = useCallback((chat: Chat, type: 'voice' | 'video') => {
-    saveCallToHistory(chat, type);
-    setActiveCall({ chat, type });
-  }, []);
-
-  const handleCallFromChat = useCallback((type: 'voice' | 'video') => {
-    const chat = chats.find(c => c.id === activeChatId);
-    if (chat) {
-      saveCallToHistory(chat, type);
-      setActiveCall({ chat, type });
-    }
-  }, [chats, activeChatId]);
-
   return {
     user, setUser,
     chats,
@@ -270,7 +256,6 @@ export function useChatData() {
     messages,
     initialized,
     newChatOpen, setNewChatOpen,
-    activeCall, setActiveCall,
     network,
     syncing, queueLength,
     handleSelectChat,
@@ -281,7 +266,5 @@ export function useChatData() {
     handleAuth,
     handleLogout,
     handleChatCreated,
-    handleStartCall,
-    handleCallFromChat,
   };
 }

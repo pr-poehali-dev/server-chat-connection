@@ -83,7 +83,7 @@ export default function CallsScreen({ chats, onStartCall }: CallsScreenProps) {
           <div className="px-4 py-3">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Быстрый звонок</span>
             <div className="flex gap-3 mt-2 overflow-x-auto pb-2">
-              {chats.slice(0, 6).map(chat => (
+              {chats.filter(c => c.partnerId).slice(0, 6).map(chat => (
                 <button
                   key={chat.id}
                   onClick={() => onStartCall(chat, 'voice')}
